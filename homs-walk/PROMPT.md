@@ -1,6 +1,6 @@
 # Homs Walk: build prompt
 
-Paste everything below the line into a fresh Claude session (Claude Code works best because it can commit to this repo). First fill in the **`[FILL IN]`** parts using the checklist in [`README.md`](README.md).
+Paste everything below the line into a fresh Claude session. This is the prompt Homs Walk was built from, with the answers filled in.
 
 ---
 
