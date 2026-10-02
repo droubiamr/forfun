@@ -132,6 +132,25 @@
   #bubble .ar { display: block; font-size: 13px; }
   #bubble .en { display: block; font-size: 11px; opacity: .75; }
 
+  #soundHint {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    padding: 6px 12px; font-size: 13px; pointer-events: none;
+    animation: blink 2.4s steps(1) infinite;
+  }
+  #polaroid {
+    position: fixed; left: 16px; bottom: 16px; margin: 0;
+    background: #fbf8f1; padding: 7px 7px 6px;
+    box-shadow: 4px 6px 0 rgba(0, 0, 0, .35);
+    transform: rotate(-4deg);
+    color: #2a2430;
+    pointer-events: none;
+  }
+  #polaroid img { display: block; width: min(46vw, 300px); image-rendering: pixelated; border: 1px solid #d8d2c4; }
+  #polaroid figcaption { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding: 6px 2px 0; font-size: 12px; }
+  #polaroid figcaption .ar { font-size: 11px; }
+  #polaroid.in { animation: snap .5s steps(5) both; }
+  #polaroid.out { animation: snap .6s steps(5) reverse both; }
+  @keyframes snap { from { transform: translateY(140%) rotate(8deg); } to { transform: translateY(0) rotate(-4deg); } }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; letter-spacing: 2px; }
   #rotate { display: none; }
   @keyframes blink { 50% { opacity: .25; } }
@@ -142,7 +161,7 @@
     #zone .en { font-size: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    #mode::before, #bubble { animation: none; }
+    #mode::before, #bubble, #soundHint, #polaroid.in, #polaroid.out { animation: none; }
     body { transition: none; }
   }
 </style>
@@ -171,7 +190,7 @@
 <div id="controls">
   <button id="btnStroll" aria-pressed="false" title="Pause / walk (Space)">❚❚ Pause</button>
   <button id="btnPreview" aria-pressed="false" title="Try other times and weather (P)">Preview</button>
-  <button id="btnSound" aria-pressed="false" title="Soundtrack (M)">♪ Sound</button>
+  <button id="btnSound" aria-pressed="true" title="Soundtrack (M)">♪ On</button>
   <button id="btnHelp" aria-label="Controls and about" title="Help (?)">?</button>
 </div>
 
@@ -202,11 +221,13 @@
   <div>He walks on his own. Sit back.</div>
   <div>Want to take over? <kbd>←</kbd> <kbd>→</kbd> or hold either side of the screen. Hold <kbd>Shift</kbd> to hurry.</div>
   <div><kbd>Space</kbd> pause · <kbd>P</kbd> preview · <kbd>M</kbd> sound · <kbd>?</kbd> help</div>
-  <p>He stops at the shops, clocks and the mosque to say something.</p>
+  <p>He stops for hummus in Homs, and takes a photo at the New Clock.</p>
   <p>The sky, sun, moon and weather follow Homs right now (Asia/Damascus time). Weather by <a href="https://open-meteo.com/" style="color:var(--accent)">Open-Meteo</a>.</p>
   <button id="btnHelpClose">Yalla ←</button>
 </div>
 
+<div id="soundHint" class="box" hidden>♪ Tap anywhere for music</div>
+<figure id="polaroid" hidden><img alt="A photo of the New Clock tower in Homs"><figcaption><span class="cap"></span><span class="ar">ساعة حمص الجديدة</span></figcaption></figure>
 <div id="bubble" hidden><span class="ar" dir="rtl"></span><span class="en"></span></div>
 
 <script src="main.js"></script>
