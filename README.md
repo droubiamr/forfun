@@ -17,4 +17,4 @@ Nothing here has to be useful. Each project should feel finished, have a point o
 
 | Project | What it is |
 | --- | --- |
-| [`homs-walk/`](homs-walk/) | A pixel-art stroll through Homs, Syria, synced to the city's real time and weather. *(in progress)* |
+| [`homs-walk/`](homs-walk/) | A pixel-art stroll through Homs, Syria, that plays itself and follows the city's real time, sky and weather. |

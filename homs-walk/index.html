@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Homs Walk · حمص</title>
+<meta name="description" content="A tiny pixel-art stroll through Homs, Syria, synced to the city's real time and weather.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;700&family=Pixelify+Sans:wght@500;700&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f6ecd8;
+    --panel: rgba(22, 18, 30, .78);
+    --edge: #f6ecd8;
+    --accent: #ffcf6a;
+    --live: #7ee08a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: #1b2348;
+    color: var(--ink);
+    font: 500 14px/1.25 "Pixelify Sans", ui-monospace, monospace;
+    -webkit-font-smoothing: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color 1.5s linear;
+  }
+  #c {
+    position: absolute;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .ar { font-family: "Noto Kufi Arabic", "Geeza Pro", "Segoe UI", sans-serif; font-weight: 700; }
+  .box {
+    background: var(--panel);
+    border: 2px solid var(--edge);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
+    border-radius: 2px;
+  }
+  #zone {
+    position: fixed; top: 12px; left: 12px;
+    padding: 5px 10px 4px;
+    display: flex; flex-direction: column; gap: 1px;
+    max-width: calc(100vw - 24px);
+    transition: opacity .4s;
+  }
+  #zone .en { font-weight: 700; font-size: 14px; letter-spacing: .5px; }
+  #zone .ar { font-size: 12px; opacity: .85; }
+  #hud {
+    position: fixed; top: 12px; right: 12px;
+    padding: 8px 10px 8px;
+    min-width: 168px;
+    cursor: pointer;
+  }
+  #hud .head { display: flex; align-items: baseline; gap: 6px; font-weight: 700; letter-spacing: 1px; }
+  #hud .head .ar { font-size: 12px; letter-spacing: 0; }
+  #mode { margin-left: auto; font-size: 11px; color: var(--live); letter-spacing: .5px; }
+  #mode.preview { color: var(--accent); }
+  #mode::before { content: "● "; animation: blink 1.6s steps(1) infinite; }
+  #time { font-size: 30px; font-weight: 700; line-height: 1.05; margin: 2px 0 1px; letter-spacing: 1px; }
+  #time .sec { font-size: 16px; opacity: .7; }
+  #date, #hijri { font-size: 12px; opacity: .9; }
+  #hijri { opacity: .7; }
+  .wx { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
+  #wxicon { width: 24px; height: 24px; image-rendering: pixelated; }
+  #temp { font-size: 20px; font-weight: 700; }
+  #cond { display: flex; flex-direction: column; font-size: 11px; line-height: 1.2; }
+  #cond .ar { font-size: 10px; opacity: .8; }
+  .sun { display: flex; gap: 12px; font-size: 11px; opacity: .75; margin-top: 4px; }
+  #hud.compact .full { display: none; }
+  #hud.compact { min-width: 0; }
+  #hud.compact #time { font-size: 20px; }
+
+  #controls {
+    position: fixed; right: 12px; top: 0;
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+  }
+  button, select {
+    font: 700 12px "Pixelify Sans", ui-monospace, monospace;
+    color: var(--ink);
+    background: var(--panel);
+    border: 2px solid var(--edge);
+    border-radius: 2px;
+    padding: 4px 9px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, .35);
+  }
+  button[aria-pressed="true"] { background: var(--ink); color: #1d1724; }
+  button:focus-visible, select:focus-visible, input:focus-visible, #hud:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  #preview {
+    position: fixed; right: 12px;
+    padding: 8px 10px; width: 236px;
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 12px;
+  }
+  #preview[hidden], #help[hidden], #bubble[hidden] { display: none; }
+  #preview label { display: flex; justify-content: space-between; }
+  #preview input[type=range] { width: 100%; accent-color: var(--accent); }
+  #preview .row { display: flex; gap: 6px; }
+  #preview select { flex: 1; }
+
+  #help {
+    position: fixed; inset: 0; margin: auto;
+    width: min(340px, calc(100vw - 32px)); height: fit-content;
+    padding: 14px 16px; font-size: 13px; line-height: 1.5;
+  }
+  #help h2 { margin: 0 0 6px; font-size: 16px; }
+  #help kbd { border: 1px solid var(--ink); padding: 0 4px; border-radius: 2px; font: inherit; }
+  #help p { margin: 6px 0; opacity: .85; }
+
+  #bubble {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    background: #fffaf0; color: #1d1724;
+    border: 2px solid #1d1724;
+    padding: 4px 8px 3px;
+    border-radius: 2px;
+    text-align: center;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, .3);
+    pointer-events: none;
+    white-space: nowrap;
+    animation: pop .18s steps(3);
+  }
+  #bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -4px;
+    border: 4px solid transparent; border-top-color: #1d1724;
+  }
+  #bubble .ar { display: block; font-size: 13px; }
+  #bubble .en { display: block; font-size: 11px; opacity: .75; }
+
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; letter-spacing: 2px; }
+  #rotate { display: none; }
+  @keyframes blink { 50% { opacity: .25; } }
+  @keyframes pop { from { transform: translate(-50%, -80%) scale(.6); } }
+  @media (max-width: 560px) {
+    #time { font-size: 22px; }
+    #hud { min-width: 0; padding: 6px 8px; }
+    #zone .en { font-size: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #mode::before, #bubble { animation: none; }
+    body { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div id="loading">LOADING HOMS…</div>
+<canvas id="c" aria-label="A pixel-art street in Homs, Syria. Use the arrow keys to walk." role="img"></canvas>
+
+<div id="zone" class="box" aria-live="polite"><span class="en"></span><span class="ar" dir="rtl"></span></div>
+
+<div id="hud" class="box" tabindex="0" role="button" aria-label="Homs time and weather. Activate to collapse or expand.">
+  <div class="head"><span>HOMS</span><span class="ar">حمص</span><span id="mode">LIVE</span></div>
+  <div id="time">--:--</div>
+  <div class="full">
+    <div id="date"></div>
+    <div id="hijri"></div>
+  </div>
+  <div class="wx" aria-live="polite">
+    <canvas id="wxicon" width="12" height="12" aria-hidden="true"></canvas>
+    <span id="temp">--°</span>
+    <span id="cond"><span class="en">…</span><span class="ar" dir="rtl"></span></span>
+  </div>
+  <div class="sun full"><span id="rise">☀ --:--</span><span id="set">☾ --:--</span></div>
+</div>
+
+<div id="controls">
+  <button id="btnStroll" aria-pressed="false" title="Pause / walk (Space)">❚❚ Pause</button>
+  <button id="btnPreview" aria-pressed="false" title="Try other times and weather (P)">Preview</button>
+  <button id="btnSound" aria-pressed="false" title="Soundtrack (M)">♪ Sound</button>
+  <button id="btnHelp" aria-label="Controls and about" title="Help (?)">?</button>
+</div>
+
+<div id="preview" class="box" hidden>
+  <label for="tSlider"><span>Time in Homs</span><span id="tLabel">--:--</span></label>
+  <input id="tSlider" type="range" min="0" max="1439" step="5">
+  <div class="row">
+    <select id="wSelect" aria-label="Weather">
+      <option value="live">Live weather</option>
+      <option value="clear">Clear</option>
+      <option value="partly">Partly cloudy</option>
+      <option value="overcast">Overcast</option>
+      <option value="fog">Fog</option>
+      <option value="rain">Rain</option>
+      <option value="storm">Thunderstorm</option>
+      <option value="snow">Snow</option>
+      <option value="dust">Hot &amp; dusty</option>
+    </select>
+    <button id="btnLive">Live</button>
+  </div>
+  <div class="row">
+    <button data-t="390">Dawn</button><button data-t="720">Noon</button><button data-t="1080">Sunset</button><button data-t="1350">Night</button>
+  </div>
+</div>
+
+<div id="help" class="box" hidden role="dialog" aria-label="Help">
+  <h2>Homs Walk · <span class="ar">حمص</span></h2>
+  <div>He walks on his own. Sit back.</div>
+  <div>Want to take over? <kbd>←</kbd> <kbd>→</kbd> or hold either side of the screen. Hold <kbd>Shift</kbd> to hurry.</div>
+  <div><kbd>Space</kbd> pause · <kbd>P</kbd> preview · <kbd>M</kbd> sound · <kbd>?</kbd> help</div>
+  <p>He stops at the shops, clocks and the mosque to say something.</p>
+  <p>The sky, sun, moon and weather follow Homs right now (Asia/Damascus time). Weather by <a href="https://open-meteo.com/" style="color:var(--accent)">Open-Meteo</a>.</p>
+  <button id="btnHelpClose">Yalla ←</button>
+</div>
+
+<div id="bubble" hidden><span class="ar" dir="rtl"></span><span class="en"></span></div>
+
+<script src="main.js"></script>
+</body>
+</html>

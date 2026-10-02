@@ -12,7 +12,7 @@ This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny ch
 **Do the same for Homs**, with one key difference: time and weather are **live**, not toggled by default.
 
 ## Core requirements
-1. **Pixel walk view**
+1. **Pixel walk view.** It's a website that plays like a video: the character starts walking on page load and keeps going (pausing at landmarks), with only minor optional controls.
    - Side-scrolling street, walk with ←/→ or A/D and tap/hold on screen halves on mobile. Walk animation of at least 4 frames, idle bob, and a turnaround when changing direction.
    - 3–5 parallax layers: sky → far hills → city silhouette → main street → foreground (lamps, people, cars).
    - Render at a low internal resolution (e.g. 320×180 or 384×216) on a `<canvas>` and scale up with `image-rendering: pixelated` and integer scaling. Every pixel must stay crisp.
@@ -32,7 +32,7 @@ This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny ch
 4. **Info panel (top right)**
    - A small pixel-styled card showing the Homs time (live, with seconds or a blinking colon), the Gregorian date, the **Hijri date** (`Intl` with `calendar: 'islamic-umalqura'`), the temperature (°C), a pixel weather icon with its condition, plus sunrise/sunset.
    - Collapsible. Behind a toggle, include a **"preview" mode** with time slider and weather override (like the Seattle demo's buttons) so people can see night/rain even when it's sunny at noon. A clear "Live" button snaps back.
-   - Bilingual where it's cheap to do (`[FILL IN: Arabic+English / English only / Arabic first]`).
+   - Arabic + English.
 
 5. **Homs, done lovingly.** Draw these as recognisable pixel landmarks, all procedurally drawn or hand-placed pixel art, no external images:
    - **Khalid ibn al-Walid Mosque**: the striped black-basalt and white-limestone (ablaq) walls, the two slender Ottoman pencil minarets, and the silvery domes. This is the hero landmark.
@@ -42,11 +42,11 @@ This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny ch
    - The **Orontes river (Al-Assi)** with a waterwheel or riverside cafe and trees.
    - On the far horizon: the **Citadel mound**, and on a clear day the hills toward **Krak des Chevaliers** to the west.
    - Street life: a sweets shop with **halawet el-jibn** (Homs's famous sweet), a falafel stand, a coffee seller with a dallah, a ka'ak cart, a cat or two, pigeons that scatter when you walk past, old Peugeots or taxis (yellow) and minibuses on the road.
-   - `[FILL IN: any personal places, such as my street, school, family's shop, favourite café, with a one-line description each]`
-   - Tone: `[FILL IN: e.g. "Homs as it is remembered and as it is being rebuilt: warm, hopeful, lived-in. No war imagery."]`
+   - Must-haves: the old clock (cast-iron double-faced street clock), the new clock tower, Khalid ibn al-Walid Mosque, the old city souq, the citadel mound with its transmission towers ("Homs tower"), a manakish shop, and a hummus shop (blue barrels with trays of chickpeas out front).
+   - Tone: warm and hopeful.
 
 6. **Character**
-   - `[FILL IN: describe me or attach a reference image. Hair, glasses, clothing colours, anything iconic such as a keffiyeh, backpack, or headphones.]`
+   - Slicked-back dark hair, full dark beard, black suit, white shirt, green tie.
    - Chibi proportions about 24–32px tall at internal resolution, with a 1px dark outline and a soft shadow underneath. Add a reflection in puddles when it's raining.
 
 7. **Small touches (pick the best ones, don't drown it)**
@@ -55,7 +55,7 @@ This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny ch
    - Birds over the minarets at golden hour.
    - Friday morning is calmer, with fewer cars.
    - During Ramadan (detect via Hijri month 9), add lanterns and fanous strung across the souq after sunset.
-   - `[FILL IN: sound? "no sound" / "optional ambient toggle, off by default"]`
+   - A video-game soundtrack in the style of the reference, as an optional toggle.
 
 ## Technical constraints
 - **Lightweight is a hard requirement.** Use a single `index.html` with inline CSS + JS, or at most `index.html` + `main.js`. No frameworks, no build step, no npm. Aim for under ~150 KB total. Load no fonts from the network if possible, and draw pixel text with a tiny bitmap font you define inline. (One Google Font for Arabic, like *Noto Kufi Arabic*, is acceptable if it really helps.)
