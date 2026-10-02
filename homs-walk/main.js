@@ -940,7 +940,7 @@ function buildWorld() {
     g.drawImage(t1, sx + (sw - t1.width >> 1), base - 52 - sh); g.drawImage(t2, sx + (sw - t2.width >> 1), base - 52 - t2.height);
   }
   for (const lx of [40, 160, 420, 560, 680, 800, 930, 1960, 2080, 2200, 2320, 2440, 2600, 2760, 2890]) lampOrnate(lx, 154);
-  for (const lx of [1050, 1150, 1240, 1330]) lampModern(lx, 154);
+  for (const lx of [1050, 1124, 1240, 1330]) lampModern(lx, 154);
   topiary(1110, 154); topiary(1270, 154);
   hedge(2380, 147, 40, 7); hedge(2850, 147, 50, 7);
   // souq: front pillars, stalls at the bottom edge
@@ -1182,7 +1182,7 @@ function update(dt) {
       dir = 1;
       for (const t of talk) if (t.stop && t.lap !== pl.lap && pw > t.x - 1 && pw < t.x + 3) {
         t.lap = pl.lap; pl.wait = t.stop; dir = 0;
-        if (t.id === 'photo') { pl.photoT = 0; pl.snapped = false; }
+        if (t.id === 'photo') { pl.photoT = 0; pl.snapped = false; pl.dir = -1; }
       }
     }
   }
@@ -1191,8 +1191,8 @@ function update(dt) {
     if (!pl.snapped && pl.photoT > 1.5) { pl.snapped = true; S.capture = true; if (sound.on) sound.shutter(); }
     if (pl.photoT > 4.6 || dir) pl.photoT = -1;
   }
-  camFlash = Math.max(0, camFlash - dt * 2);
-  const target = dir * (keys.run ? 72 : 36);
+  camFlash = Math.max(0, camFlash - dt * 2.2);
+  const target = dir * (keys.run ? 60 : 26);
   pl.speed = lerp(pl.speed, target, clamp(dt * 10, 0, 1));
   if (Math.abs(pl.speed) < 0.5 && !dir) pl.speed = 0;
   if (dir) pl.dir = dir;
@@ -1246,7 +1246,7 @@ function update(dt) {
     } else p.f += dt * (1 + Math.random());
   }
   // cats
-  if (!cats.length) cats = [{ x: 960, y: 140, c: 0 }, { x: 2040, y: 140, c: 1 }, { x: 2306, y: 140, c: 2 }, { x: 1520, y: 140, c: 3 }, { x: 618, y: 140, c: 2 }].map(o => ({ ...o, t: Math.random() * 5 }));
+  if (!cats.length) cats = [{ x: 960, y: 140, c: 0 }, { x: 2040, y: 140, c: 1 }, { x: 2306, y: 140, c: 2 }, { x: 1520, y: 140, c: 3 }, { x: 458, y: 140, c: 2 }].map(o => ({ ...o, t: Math.random() * 5 }));
   for (const c of cats) c.t += dt;
   // steam puffs (world coordinates)
   if (!REDUCED) for (const s of steam) { const sx = wsx(s.x); if (sx > -10 && sx < W + 10 && Math.random() < dt * 2.5) puffs.push({ x: s.x + Math.random() * 4 - 2, y: s.y, life: 0 }); }
@@ -1359,7 +1359,9 @@ function drawPlayer(c2, x, y, alpha = 1) {
     px.fillStyle = '#17121c'; px.fillRect(12, 13 + bob, 4, 6); px.fillRect(15, 7 + bob, 3, 9);
     px.fillStyle = '#23262d'; px.fillRect(13, 14 + bob, 2, 4);
     px.fillStyle = '#d6a47e'; px.fillRect(15, 14 + bob, 2, 2);
-    px.fillStyle = '#9ad0ff'; px.fillRect(16, 8 + bob, 1, 6);
+    px.fillStyle = '#17121c'; px.fillRect(15, 6 + bob, 3, 9);
+    px.fillStyle = '#8a909c'; px.fillRect(16, 7 + bob, 1, 7);
+    px.fillStyle = '#ffffff'; px.fillRect(17, 8 + bob, 1, 1);
   }
   let img = pc;
   if (pl.dir < 0) { plFlipCtx.clearRect(-18, 0, 18, 32); plFlipCtx.drawImage(pc, -18, 0); img = plFlip; }
@@ -1580,8 +1582,28 @@ function render() {
   if (wx.dust) { ctx.fillStyle = `rgba(214,170,110,${wx.dust * .16})`; ctx.fillRect(0, 0, W, H); }
   if (flash > 0) { ctx.fillStyle = `rgba(235,240,255,${(REDUCED ? .15 : .55) * flash})`; ctx.fillRect(0, 0, W, H); }
   // the photo at the clock: grab the frame, then the flash
-  if (S.capture) { S.capture = false; camFlash = 1; showPolaroid(canvas.toDataURL('image/png')); }
-  if (camFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${(REDUCED ? .3 : .85) * camFlash})`; ctx.fillRect(0, 0, W, H); }
+  if (S.capture) {
+    S.capture = false; camFlash = 1;
+    const psx = Math.round(pl.x - cx), cw = 120, ch2 = 132, x0 = clamp(psx - 44, 0, W - cw), y0 = 20;
+    const [sc, sx2] = makeCanvas(cw, ch2);
+    sx2.drawImage(canvas, x0, y0, cw, ch2, 0, 0, cw, ch2);
+    showPolaroid(sc.toDataURL('image/png'));
+  }
+  if (pl.photoT > 0.4 && pl.photoT < 4.4 && !camFlash) {
+    // phone screen glow on his face while he frames the shot
+    ctx.globalCompositeOperation = 'lighter';
+    drawGlow('#7ab8ff', Math.round(pl.x - cx) - 5, FEET - 21, 8, .35 + S.night * .3);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (camFlash > 0) {
+    // the phone's flash lights up just his face
+    const fx = Math.round(pl.x - cx) - 8, fy = FEET - 21;
+    ctx.globalCompositeOperation = 'lighter';
+    drawGlow('#ffffff', fx, fy, 20, camFlash * (REDUCED ? .6 : 1.2));
+    drawGlow('#ffffff', fx + 5, fy - 1, 10, camFlash * 1.4);
+    if (camFlash > .7) { ctx.fillStyle = '#ffffff'; ctx.fillRect(fx - 1, fy - 2, 3, 3); }
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
   document.body.style.backgroundColor = rgba(mixC(p.top, p.mid, .3));
 }
@@ -1592,10 +1614,10 @@ function render() {
 const hud = $('#hud'), zoneEl = $('#zone'), bubble = $('#bubble'), controls = $('#controls'), preview = $('#preview');
 let curZone = -1;
 function layoutHud() {
-  const h = hud.getBoundingClientRect();
-  controls.style.top = (h.bottom + 8) + 'px';
   const c = controls.getBoundingClientRect();
-  preview.style.top = (c.bottom + 8) + 'px';
+  hud.style.top = (c.bottom + 8) + 'px';
+  const h = hud.getBoundingClientRect();
+  preview.style.top = (h.bottom + 8) + 'px';
 }
 function updateHud() {
   const p = S.parts;
@@ -1667,7 +1689,8 @@ function updateBubble() {
     const cat = cats.find(c => Math.abs(wrapDist(c.x + 4, pl.x)) < 16);
     const spot = talk.reduce((best, t) => { const d = Math.abs(wrapDist(t.x, pl.x)); return d < 34 && (!best || d < best.d) ? { ...t, d } : best; }, null);
     const { h, mi } = S.parts;
-    if (cat) line = LINES.cat;
+    if (spot && (spot.id === 'hummus' || spot.id === 'photo')) line = LINES[spot.id];
+    else if (cat) line = LINES.cat;
     else if (spot && (spot.id === 'oldclock' || spot.id === 'newclock')) line = [`الساعة ${pad(h)}:${pad(mi)}`, `It's ${pad(h)}:${pad(mi)} in Homs.`];
     else if (spot && spot.id === 'manakish' && shops[2]?.isOpen === false) line = ['مسكّر… بكرا الصبح', 'Closed… tomorrow morning.'];
     else if (spot) line = LINES[spot.id];
@@ -1832,6 +1855,7 @@ function autoStartSound() {
   const hint = $('#soundHint');
   const check = () => { hint.hidden = sound.running || !sound.on; };
   setTimeout(check, 400);
+  setTimeout(() => { hint.hidden = true; }, 7000);
   const go = () => { if (sound.on) sound.start(); setTimeout(check, 200); };
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, go, { once: true, capture: true });
 }
@@ -1843,7 +1867,7 @@ function showPolaroid(src) {
   const el = $('#polaroid');
   el.querySelector('img').src = src;
   const { h, mi } = S.parts;
-  el.querySelector('.cap').textContent = `New Clock · ${pad(h)}:${pad(mi)}`;
+  el.querySelector('.cap').textContent = `Selfie · ${pad(h)}:${pad(mi)}`;
   el.hidden = false;
   el.classList.remove('out'); void el.offsetWidth; el.classList.add('in');
   clearTimeout(polaroidTimer);
@@ -1861,7 +1885,8 @@ addEventListener('keydown', e => {
   if (e.key === 'Shift') keys.run = true;
   if (e.repeat) return;
   if (e.code === 'Space' || e.code === 'KeyS') { e.preventDefault(); $('#btnStroll').click(); }
-  if (e.code === 'KeyP') $('#btnPreview').click();
+  if (e.code === 'KeyI') $('#btnInfo').click();
+  if (e.code === 'KeyP') { if (hud.hidden) $('#btnInfo').click(); $('#btnPreview').click(); }
   if (e.code === 'KeyM') $('#btnSound').click();
   if (e.key === '?' || e.key === '/') $('#btnHelp').click();
   if (e.key === 'Escape') $('#help').hidden = true;
@@ -1872,8 +1897,13 @@ canvas.addEventListener('pointerdown', e => { touchDir = e.clientX < innerWidth 
 canvas.addEventListener('pointermove', e => { if (touchDir) touchDir = e.clientX < innerWidth / 2 ? -1 : 1; });
 for (const ev of ['pointerup', 'pointercancel']) canvas.addEventListener(ev, () => { touchDir = 0; });
 
-hud.addEventListener('click', () => { hud.classList.toggle('compact'); layoutHud(); });
-hud.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hud.click(); } });
+$('#btnInfo').onclick = e => {
+  hud.hidden = !hud.hidden;
+  e.currentTarget.setAttribute('aria-expanded', String(!hud.hidden));
+  e.currentTarget.setAttribute('aria-pressed', String(!hud.hidden));
+  if (hud.hidden) { preview.hidden = true; $('#btnPreview').setAttribute('aria-pressed', 'false'); }
+  hudDirty = true; layoutHud();
+};
 $('#btnStroll').onclick = () => { pl.auto = !pl.auto; pl.manualT = 0; syncStroll(); };
 $('#btnSound').onclick = () => { sound.toggle(); syncSound(); $('#soundHint').hidden = true; };
 $('#btnHelp').onclick = () => { $('#help').hidden = !$('#help').hidden; };

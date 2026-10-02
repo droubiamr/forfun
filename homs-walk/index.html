@@ -53,7 +53,6 @@
     position: fixed; top: 12px; right: 12px;
     padding: 8px 10px 8px;
     min-width: 168px;
-    cursor: pointer;
   }
   #hud .head { display: flex; align-items: baseline; gap: 6px; font-weight: 700; letter-spacing: 1px; }
   #hud .head .ar { font-size: 12px; letter-spacing: 0; }
@@ -70,12 +69,11 @@
   #cond { display: flex; flex-direction: column; font-size: 11px; line-height: 1.2; }
   #cond .ar { font-size: 10px; opacity: .8; }
   .sun { display: flex; gap: 12px; font-size: 11px; opacity: .75; margin-top: 4px; }
-  #hud.compact .full { display: none; }
-  #hud.compact { min-width: 0; }
-  #hud.compact #time { font-size: 20px; }
+  #hud .tools { display: flex; gap: 6px; margin-top: 8px; }
+  #hud .tools button { padding: 3px 8px; font-size: 11px; }
 
   #controls {
-    position: fixed; right: 12px; top: 0;
+    position: fixed; right: 12px; top: 12px;
     display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
   }
   button, select {
@@ -145,7 +143,7 @@
     color: #2a2430;
     pointer-events: none;
   }
-  #polaroid img { display: block; width: min(46vw, 300px); image-rendering: pixelated; border: 1px solid #d8d2c4; }
+  #polaroid img { display: block; width: min(40vw, 230px); image-rendering: pixelated; border: 1px solid #d8d2c4; }
   #polaroid figcaption { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding: 6px 2px 0; font-size: 12px; }
   #polaroid figcaption .ar { font-size: 11px; }
   #polaroid.in { animation: snap .5s steps(5) both; }
@@ -172,7 +170,7 @@
 
 <div id="zone" class="box" aria-live="polite"><span class="en"></span><span class="ar" dir="rtl"></span></div>
 
-<div id="hud" class="box" tabindex="0" role="button" aria-label="Homs time and weather. Activate to collapse or expand.">
+<div id="hud" class="box" hidden aria-label="Homs right now">
   <div class="head"><span>HOMS</span><span class="ar">حمص</span><span id="mode">LIVE</span></div>
   <div id="time">--:--</div>
   <div class="full">
@@ -185,13 +183,16 @@
     <span id="cond"><span class="en">…</span><span class="ar" dir="rtl"></span></span>
   </div>
   <div class="sun full"><span id="rise">☀ --:--</span><span id="set">☾ --:--</span></div>
+  <div class="tools">
+    <button id="btnPreview" aria-pressed="false" title="Try other times and weather (P)">Try another time</button>
+    <button id="btnHelp" aria-label="Controls and about" title="Help (?)">?</button>
+  </div>
 </div>
 
 <div id="controls">
   <button id="btnStroll" aria-pressed="false" title="Pause / walk (Space)">❚❚ Pause</button>
-  <button id="btnPreview" aria-pressed="false" title="Try other times and weather (P)">Preview</button>
   <button id="btnSound" aria-pressed="true" title="Soundtrack (M)">♪ On</button>
-  <button id="btnHelp" aria-label="Controls and about" title="Help (?)">?</button>
+  <button id="btnInfo" aria-expanded="false" aria-controls="hud" title="Time and weather in Homs (I)">Homs now</button>
 </div>
 
 <div id="preview" class="box" hidden>
@@ -220,8 +221,8 @@
   <h2>Homs Walk · <span class="ar">حمص</span></h2>
   <div>He walks on his own. Sit back.</div>
   <div>Want to take over? <kbd>←</kbd> <kbd>→</kbd> or hold either side of the screen. Hold <kbd>Shift</kbd> to hurry.</div>
-  <div><kbd>Space</kbd> pause · <kbd>P</kbd> preview · <kbd>M</kbd> sound · <kbd>?</kbd> help</div>
-  <p>He stops for hummus in Homs, and takes a photo at the New Clock.</p>
+  <div><kbd>Space</kbd> pause · <kbd>I</kbd> Homs now · <kbd>P</kbd> another time · <kbd>M</kbd> sound · <kbd>?</kbd> help</div>
+  <p>He stops for hummus in Homs, and takes a selfie at the New Clock.</p>
   <p>The sky, sun, moon and weather follow Homs right now (Asia/Damascus time). Weather by <a href="https://open-meteo.com/" style="color:var(--accent)">Open-Meteo</a>.</p>
   <button id="btnHelpClose">Yalla ←</button>
 </div>

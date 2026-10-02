@@ -1,6 +1,6 @@
 # Homs Walk · حمص
 
-A tiny pixel-art stroll through **Homs, Syria** that plays itself, like a looping video. Open the page and he starts walking: past the Old Clock, down Al-Dablan Street (he stops for a plate of hummus, in Homs), through New Clock Square (he stops to take a photo), into the covered souq, past the basalt houses of Old Homs, and on to Khalid ibn al-Walid Mosque. After the mosque the street carries on seamlessly back to the start, so the walk never ends.
+A tiny pixel-art stroll through **Homs, Syria** that plays itself, like a looping video. Open the page and he starts walking: past the Old Clock, down Al-Dablan Street (he stops for a plate of hummus, in Homs), through New Clock Square (he turns his back to the tower and takes a selfie), into the covered souq, past the basalt houses of Old Homs, and on to Khalid ibn al-Walid Mosque. After the mosque the street carries on seamlessly back to the start, so the walk never ends.
 
 The sky, sun, moon, stars, weather and clocks all follow **Homs right now**.
 
@@ -20,9 +20,9 @@ To put it on the web, turn on GitHub Pages for this repo (Settings → Pages →
 |---|---|
 | `Space` | pause or resume the walk |
 | `←` `→` (hold `Shift` to hurry) | take over for a bit. Auto-walk comes back after 3 s |
-| `P` | preview mode: pick any time of day or weather |
+| `I` or **Homs now** | show the time, date, Hijri date and weather in Homs |
+| `P` | try another time of day or weather |
 | `M` | soundtrack on/off: an original lo-fi loop. It's on by default, and starts on your first tap, click or key, because browsers don't allow sound before that |
-| click the info card | collapse it |
 
 Shareable moments: `?t=18:30&w=rain&x=1600` (time, weather, position).
 Weather options: `clear` `partly` `overcast` `fog` `rain` `storm` `snow` `dust`.
