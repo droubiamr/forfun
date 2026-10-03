@@ -290,7 +290,7 @@ function buildSprites() {
     spriteFrom(['.....', '.ggggn', 'ww.ww', '.....'], pg),
   ];
 }
-function mulHex(h, k) { const c = mulC(hexRGB(h), k); return '#' + c.map(v => pad((v | 0).toString(16))).join(''); }
+function mulHex(h, k) { const c = mulC(hexRGB(h), k); return '#' + c.map(v => pad((Math.min(255, v) | 0).toString(16))).join(''); }
 
 function makePerson(r, force = {}) {
   const skin = force.skin || pick(r, ['#e7b994', '#c99470', '#a7714f', '#f2cfae', '#d6a47e']);
@@ -331,7 +331,7 @@ function makeCar(type, col) {
   const len = type === 'van' ? 40 : type === 'pickup' ? 34 : 30, h = type === 'van' ? 16 : 13;
   const [c, x] = makeCanvas(len, h);
   const R = (a, b, w, hh, cc) => { x.fillStyle = cc; x.fillRect(a, b, w, hh); };
-  const dark = mulHex(col, 0.72), light = mulHex(col, 1.12 > 1 ? 1 : 1);
+  const dark = mulHex(col, 0.72), light = mulHex(col, 1.12);
   const glass = '#5f7790', glassL = '#9fb6c8';
   if (type === 'van') {
     R(1, 2, len - 3, h - 6, col); R(0, 3, 1, h - 7, col); R(len - 2, 4, 2, h - 8, col);
@@ -362,6 +362,7 @@ function makeCar(type, col) {
 const backLights = [];   // rect emissives on the back layer {x,y,w,h,c,th,kind}
 const glows = [];        // additive glows {x,y,r,c,th,flick,layer}
 const shops = [];        // shutter rects {x,y,w,h,open}
+let MANAKISH = 0;        // index of the manakish oven shop (the baker stands there)
 const clocks = [];       // {x,y,r,layer}
 const steam = [];        // emitters {x,y}
 const talk = [];         // {x, id}
@@ -424,7 +425,7 @@ function rectWin(x, y, w, h, frame, glass, light = true, r = Math.random) {
   R(x, y, w, h, glass);
   R(x, y + (h >> 1), w, 1, frame);
   if (w > 5) R(x + (w >> 1), y, 1, h, frame);
-  R(x, y, 1, 1, mulHex(glass, 1.6 > 1 ? 1.4 : 1));
+  R(x, y, 1, 1, mulHex(glass, 1.4));
   if (light) backLights.push({ x, y, w, h, c: pick(r, WARM), th: r() });
 }
 function awning(x, y, w, c1, c2) {
@@ -462,7 +463,7 @@ function shop(x, w, opts) {
 }
 function building(x, w, top, o, r) {
   const { col, floor = 15, ww = 7, wh = 8, gap = 15, bottom = 94, roof = true } = o;
-  const dark = mulHex(col, 0.85), lite = mulHex(col, 1.06 > 1 ? 1 : 1);
+  const dark = mulHex(col, 0.85), lite = mulHex(col, 1.06);
   R(x, top, w, bottom - top, col);
   R(x, top, 1, bottom - top, lite); R(x + w - 1, top, 1, bottom - top, dark);
   R(x - 1, top - 2, w + 2, 2, dark); R(x - 1, top, w + 2, 1, mulHex(col, 0.7));
@@ -586,11 +587,11 @@ function buildWorld() {
   /* ---- Zone A: The Old Clock / Shukri al-Quwatli St ---- */
   building(4, 116, 46, { col: '#e3d8c2', gap: 18, balcony: .45 }, r);
   shop(8, 52, { bg: '#2f6a46', fg: '#f4f0e0', ar: 'صيدلية', en: '', awn: null, wall: '#e3d8c2', inside: '#dfe8e4',
-    interior: (x, y, w, h) => { for (let i = 0; i < 4; i++) R(x + 2, y + 3 + i * 6, w - 4, 1, '#9ab0aa'); for (let i = 0; i < 18; i++) R(x + 2 + r() * (w - 6), y + 1 + ((r() * 4) | 0) * 6, 2, 2, pick(r, ['#e05a5a', '#5a8ae0', '#f0f0f0', '#60b080'])); } });
+    interior: (x, y, w) => { for (let i = 0; i < 4; i++) R(x + 2, y + 3 + i * 6, w - 4, 1, '#9ab0aa'); for (let i = 0; i < 18; i++) R(x + 2 + r() * (w - 6), y + 1 + ((r() * 4) | 0) * 6, 2, 2, pick(r, ['#e05a5a', '#5a8ae0', '#f0f0f0', '#60b080'])); } });
   glows.push({ x: 14, y: 100, r: 10, c: '#40ff90', th: 0.1, layer: 0 }); // pharmacy cross
   R(12, 98, 5, 1, '#40e080'); R(14, 96, 1, 5, '#40e080');
   shop(62, 54, { bg: '#f2ece0', fg: '#2a4a8a', ar: 'مكتبة', en: 'BOOKS', awn: ['#2a4a8a', '#e8e4da'], wall: '#e3d8c2',
-    interior: (x, y, w, h) => { for (let s = 0; s < 3; s++) { R(x + 1, y + 6 + s * 7, w - 2, 1, '#6a4a2a'); for (let i = x + 2; i < x + w - 2; i += 2) R(i, y + 2 + s * 7, 1, 4, pick(r, ['#c04a3a', '#3a6ac0', '#e0c050', '#3a9a6a', '#f0e8d8'])); } } });
+    interior: (x, y, w) => { for (let s = 0; s < 3; s++) { R(x + 1, y + 6 + s * 7, w - 2, 1, '#6a4a2a'); for (let i = x + 2; i < x + w - 2; i += 2) R(i, y + 2 + s * 7, 1, 4, pick(r, ['#c04a3a', '#3a6ac0', '#e0c050', '#3a9a6a', '#f0e8d8'])); } } });
   building(124, 78, 64, { col: '#d4c19c', gap: 16, shutters: true }, r);
   R(124, 94, 78, 46, '#cdb994'); rectWin(134, 112, 14, 16, '#8a6a4a', '#33302c', true, r); rectWin(170, 112, 14, 16, '#8a6a4a', '#33302c', true, r);
   R(152, 106, 10, 34, '#6a4a2e'); R(153, 107, 8, 33, '#7d5836'); PX(159, 124, '#e0c070');
@@ -619,8 +620,9 @@ function buildWorld() {
 
   /* ---- Zone B: Al-Dablan Street ---- */
   building(470, 116, 58, { col: '#e8dcc4', gap: 16 }, r);
+  MANAKISH = shops.length;
   shop(474, 108, { bg: '#2f6a3a', fg: '#f6ecd8', ar: 'مناقيش', en: 'MANAKISH', awn: ['#2f6a3a', '#f0e6d4'], wall: '#e8dcc4', open: [6, 23],
-    interior: (x, y, w, h) => {
+    interior: (x, y, w) => {
       arch(x + w - 34, y + 4, 28, 22, '#9a4a32'); arch(x + w - 32, y + 6, 24, 20, '#b85a3a');
       arch(x + w - 27, y + 13, 14, 13, '#2a1610'); R(x + w - 25, y + 21, 10, 5, '#ff8a2a'); R(x + w - 23, y + 19, 6, 3, '#ffc860');
       R(x + 2, y + 16, w - 40, 10, '#b8bcc4'); R(x + 2, y + 16, w - 40, 1, '#e8eef4');
@@ -628,8 +630,6 @@ function buildWorld() {
     } });
   glows.push({ x: 474 + 108 - 24, y: 136, r: 16, c: '#ff8a2a', th: 0, layer: 0, flick: 1 });
   steam.push({ x: 474 + 108 - 24, y: 118 });
-  // the baker
-  backLights.push({ x: 0, y: 0, w: 0, h: 0, c: '#000', th: 2 }); // spacer, keeps indices stable
   building(586, 116, 46, { col: '#ddd2bc', gap: 15, balcony: .5 }, r);
   // Hummus shop, modelled on the real ones: plaster front, rolled-up shutter, blue barrels with trays of chickpeas
   {
@@ -1069,7 +1069,7 @@ function skyPalette(alt, wx) {
   return { top, mid: midc, hor, tint };
 }
 function skyColorAt(p, t) { return t < .55 ? mixC(p.top, p.mid, t / .55) : mixC(p.mid, p.hor, (t - .55) / .45); }
-function refreshSky(p, night) {
+function refreshSky(p) {
   const sig = [p.top, p.mid, p.hor, p.tint].map(c => c.map(v => v >> 2).join()).join('|') + W;
   if (sig === skySig) return;
   skySig = sig;
@@ -1404,7 +1404,7 @@ function render() {
   const wx = S.wx, a = S.a, n = S.night;
   const p = skyPalette(a.sunAlt, wx);
   pal = p;
-  refreshSky(p, n);
+  refreshSky(p);
   const cx = Math.round(cam.x);
   ctx.drawImage(skyCan, 0, 0);
 
@@ -1487,7 +1487,7 @@ function render() {
   }
   for (const c of clocks) if (c.layer === 0) drawClock(bctx, wsx(c.x), c.y, c.r, '#f6f2e6', '#26262a');
   // baker behind the manakish counter
-  if (shops[2] && shops[2].isOpen !== false) bctx.drawImage(SPR.baker[Math.sin(S.t * 1.5) > 0 ? 'r' : 'l'][0], wsx(530), 115);
+  if (shops[MANAKISH].isOpen !== false) bctx.drawImage(SPR.baker[Math.sin(S.t * 1.5) > 0 ? 'r' : 'l'][0], wsx(530), 115);
   tintBuf(p.tint, p.hor, wx.fog * .25 + wx.dust * .08);
   ctx.drawImage(buf, 0, 0);
 
@@ -1885,7 +1885,7 @@ function updateBubble() {
     if (spot && (spot.id === 'hummus' || spot.id === 'photo')) line = LINES[spot.id];
     else if (cat) line = LINES.cat;
     else if (spot && (spot.id === 'oldclock' || spot.id === 'newclock')) line = [`الساعة ${pad(h)}:${pad(mi)}`, `It's ${pad(h)}:${pad(mi)} in Homs.`];
-    else if (spot && spot.id === 'manakish' && shops[2]?.isOpen === false) line = ['مسكّر… بكرا الصبح', 'Closed… tomorrow morning.'];
+    else if (spot && spot.id === 'manakish' && shops[MANAKISH].isOpen === false) line = ['مسكّر… بكرا الصبح', 'Closed… tomorrow morning.'];
     else if (spot) line = LINES[spot.id];
     else if (pl.idle > 3) line = h >= 4 && h < 12 ? ['صباح الخير', 'Good morning!'] : h >= 12 && h < 17 ? ['مرحبا', 'Marhaba!'] : ['مسا الخير', 'Good evening!'];
     if (S.wx.rain > .5 && !inSouq(pl.x) && !spot && !cat) line = ['شتوية!', 'Proper winter rain!'];
@@ -2155,6 +2155,11 @@ $('#btnStroll').onclick = () => { pl.auto = !pl.auto; pl.manualT = 0; syncStroll
 $('#btnSound').onclick = () => { sound.toggle(); syncSound(); $('#soundHint').hidden = true; };
 $('#btnHelp').onclick = () => { $('#help').hidden = !$('#help').hidden; };
 $('#btnHelpClose').onclick = () => { $('#help').hidden = true; };
+$('#btnCopyPrompt').onclick = async e => {
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText(await (await fetch('PROMPT.md')).text()); b.textContent = 'Copied ✓'; }
+  catch { location.href = 'PROMPT.md'; }
+};
 $('#btnPreview').onclick = e => {
   preview.hidden = !preview.hidden;
   e.currentTarget.setAttribute('aria-pressed', String(!preview.hidden));
