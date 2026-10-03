@@ -157,7 +157,9 @@
   @keyframes blink { 50% { opacity: .25; } }
   @keyframes pop { from { transform: translate(-50%, -80%) scale(.6); } }
   @media (max-width: 560px) {
-    #zone { top: 54px; }
+    #controls { flex-direction: column; align-items: stretch; gap: 5px; }
+    #controls > * { text-align: center; }
+    #zone { max-width: calc(100vw - 140px); }
     #time { font-size: 22px; }
     #hud { min-width: 0; padding: 6px 8px; }
     #zone .en { font-size: 12px; }
