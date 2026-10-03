@@ -143,7 +143,8 @@
     color: #2a2430;
     pointer-events: none;
   }
-  #polaroid img { display: block; width: min(40vw, 230px); image-rendering: pixelated; border: 1px solid #d8d2c4; }
+  #polaroid img { display: block; width: 192px; height: 224px; image-rendering: pixelated; border: 1px solid #d8d2c4; }
+  @media (max-width: 420px) { #polaroid img { width: 144px; height: 168px; } }
   #polaroid figcaption { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding: 6px 2px 0; font-size: 12px; }
   #polaroid figcaption .ar { font-size: 11px; }
   #polaroid.in { animation: snap .5s steps(5) both; }
@@ -228,7 +229,7 @@
 </div>
 
 <div id="soundHint" class="box" hidden>♪ Tap anywhere for music</div>
-<figure id="polaroid" hidden><img alt="A photo of the New Clock tower in Homs"><figcaption><span class="cap"></span><span class="ar">ساعة حمص الجديدة</span></figcaption></figure>
+<figure id="polaroid" hidden><img alt=""><figcaption><span class="cap"></span><span class="ar">ساعة حمص الجديدة</span></figcaption></figure>
 <div id="bubble" hidden><span class="ar" dir="rtl"></span><span class="en"></span></div>
 
 <script src="main.js"></script>

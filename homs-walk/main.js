@@ -8,6 +8,7 @@
    Config & helpers
    =================================================================== */
 const H = 180, GROUND = 140, FEET = 150, WORLD_W = 2904; // a multiple of every repeating street pattern, so the loop is seamless
+const NEW_CLOCK_X = 1190;
 const MID_P = WORLD_W / 4, FAR_A_P = WORLD_W / 8, FAR_B_P = WORLD_W / 6;
 const MAX_W = 480;
 let W = 320;
@@ -156,6 +157,7 @@ const fmtParts = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit', minute: '2-digit', second: '2-digit',
 });
 const fmtDate = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const fmtDay = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: 'numeric', month: 'short' });
 let fmtHijri, fmtHijriNum;
 try {
   fmtHijri = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' });
@@ -692,7 +694,7 @@ function buildWorld() {
     for (const tx of [1062, 1130, 1250, 1318]) topiary(tx, 132);
     hedge(1024, 126, 60, 6); hedge(1296, 126, 60, 6);
     for (let i = 0; i < 30; i++) PX(1140 + r() * 100, 124 + r() * 6, pick(r, ['#e86a9a', '#f0a0c0', '#3a6a34']));
-    const cx = 1190;
+    const cx = NEW_CLOCK_X;
     // steps and plinth
     R(cx - 34, 132, 68, 8, '#d8d2c4'); for (let y = 133; y < 140; y += 2) R(cx - 34, y, 68, 1, '#bdb6a6');
     R(cx - 24, 124, 48, 8, '#e4ded0'); R(cx - 24, 124, 48, 1, '#f4f0e6');
@@ -1188,7 +1190,7 @@ function update(dt) {
   }
   if (pl.photoT >= 0) {
     pl.photoT += dt;
-    if (!pl.snapped && pl.photoT > 1.5) { pl.snapped = true; S.capture = true; if (sound.on) sound.shutter(); }
+    if (!pl.snapped && pl.photoT > 1.5) { pl.snapped = true; S.capture = true; sound.shutter(); }
     if (pl.photoT > 4.6 || dir) pl.photoT = -1;
   }
   camFlash = Math.max(0, camFlash - dt * 2.2);
@@ -1321,11 +1323,33 @@ function tintBuf(tint, haze, hazeA) {
   if (hazeA > 0) { bctx.globalCompositeOperation = 'source-atop'; bctx.fillStyle = rgba(haze, hazeA); bctx.fillRect(0, 0, W, H); }
   bctx.globalCompositeOperation = 'source-over';
 }
-function drawGlow(c, x, y, r, a) {
+function drawGlow(c, x, y, r, a, target = ctx) {
   if (a <= 0.01) return;
-  ctx.globalAlpha = Math.min(1, a);
-  ctx.drawImage(glowSprite(c, r), Math.round(x - r), Math.round(y - r));
-  ctx.globalAlpha = 1;
+  target.globalAlpha = Math.min(1, a);
+  target.drawImage(glowSprite(c, r), Math.round(x - r), Math.round(y - r));
+  target.globalAlpha = 1;
+}
+function drawMoonDisc(c2, mx, my, phase, alpha, top) {
+  const k = Math.cos(phase * Math.PI * 2), waxing = phase < .5;
+  c2.globalAlpha = alpha;
+  for (let yy = -5; yy <= 5; yy++) {
+    const hw = Math.sqrt(25 - yy * yy) + .3;
+    for (let xx = -Math.floor(hw); xx <= Math.floor(hw); xx++) {
+      const u = xx / hw, lit = waxing ? u > k : -u > k;
+      c2.fillStyle = lit ? '#f4f0dc' : rgba(mixC(top, [255, 255, 255], .08));
+      c2.fillRect(Math.round(mx + xx), Math.round(my + yy), 1, 1);
+    }
+  }
+  c2.globalAlpha = 1;
+}
+/* multiply-tint a transparent layer in place, keeping its alpha, plus optional haze */
+function tintLayer(c, x, tint, haze = null, hazeA = 0) {
+  const [m, mx2] = makeCanvas(c.width, c.height);
+  mx2.drawImage(c, 0, 0);
+  x.globalCompositeOperation = 'multiply'; x.fillStyle = rgba(tint); x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0);
+  if (hazeA > 0) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = rgba(haze, hazeA); x.fillRect(0, 0, c.width, c.height); }
+  x.globalCompositeOperation = 'source-over';
 }
 function drawClock(c2, x, y, r, face, hand) {
   for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r) { c2.fillStyle = face; c2.fillRect(x + xx, y + yy, 1, 1); }
@@ -1402,19 +1426,9 @@ function render() {
   }
   if (a.moonAlt > -3) {
     const [mx, my] = toScreen(a.moonAlt, a.moonAz);
-    const k = Math.cos(a.phase * Math.PI * 2), waxing = a.phase < .5;
     const ma = clamp(veil, 0, 1) * (0.35 + n * 0.65);
     if (n > .2) drawGlow('#cfd8ff', mx, my, 20, .35 * ma);
-    ctx.globalAlpha = ma;
-    for (let yy = -5; yy <= 5; yy++) {
-      const hw = Math.sqrt(25 - yy * yy) + .3;
-      for (let xx = -Math.floor(hw); xx <= Math.floor(hw); xx++) {
-        const u = xx / hw, lit = waxing ? u > k : -u > k;
-        ctx.fillStyle = lit ? '#f4f0dc' : rgba(mixC(p.top, [255, 255, 255], .08));
-        ctx.fillRect(Math.round(mx + xx), Math.round(my + yy), 1, 1);
-      }
-    }
-    ctx.globalAlpha = 1;
+    drawMoonDisc(ctx, mx, my, a.phase, ma, p.top);
   }
   // clouds
   const nClouds = Math.round(clamp(wx.cloud, 0, 1) * clouds.length);
@@ -1584,10 +1598,7 @@ function render() {
   // the photo at the clock: grab the frame, then the flash
   if (S.capture) {
     S.capture = false; camFlash = 1;
-    const psx = Math.round(pl.x - cx), cw = 120, ch2 = 132, x0 = clamp(psx - 44, 0, W - cw), y0 = 20;
-    const [sc, sx2] = makeCanvas(cw, ch2);
-    sx2.drawImage(canvas, x0, y0, cw, ch2, 0, 0, cw, ch2);
-    showPolaroid(sc.toDataURL('image/png'));
+    showPolaroid(renderSelfie().toDataURL('image/png'));
   }
   if (pl.photoT > 0.4 && pl.photoT < 4.4 && !camFlash) {
     // phone screen glow on his face while he frames the shot
@@ -1606,6 +1617,165 @@ function render() {
   }
 
   document.body.style.backgroundColor = rgba(mixC(p.top, p.mid, .3));
+}
+
+/* ===================================================================
+   The selfie: his own photo, rendered front-on for the moment he takes it
+   =================================================================== */
+const SELFIE_W = 96, SELFIE_H = 112;
+let selfieHead = null;
+function selfieHeadSprite() {
+  if (selfieHead) return selfieHead;
+  const hp = { k: '#17121c', h: '#231a17', H: '#4a3a32', s: '#d6a47e', S: '#b5825f', e: '#17121c', w: '#f4f2ea', b: '#1c1512', B: '#3a2c25', m: '#9a5040' };
+  const n = (c, k) => c.repeat(k);
+  const rows = [
+    '..........kkkkkkkkkk..........',
+    '.......kkkhhhhhhhhhhkkk.......',
+    '.....kkhhhhHHHHhhhhhhhhkk.....',
+    '....khhhhHHHHHHhhhhhhhhhhk....',
+    '...khhhhhhhHHHHHHhhhhhhhhhk...',
+    '...khhhhhhhhhhHHHHhhhhhhhhk...',
+    '..khhhhhhhhhhhhhhhhhhhhhhhhk..',
+    '..khhhhhhhhhhhhhhhhhhhhhhhhk..',
+    '..khhh' + n('s', 18) + 'hhhk..',
+    '..khh' + n('s', 20) + 'hhk..',
+    '..kh' + n('s', 22) + 'hk..',
+    '..kh' + n('s', 22) + 'hk..',
+    '..khsshhhhhsssssssshhhhhsshk..',
+    '.ksSssssew' + n('s', 10) + 'ewssssSsk.',
+    '.ksSssssee' + 'sssssSssss' + 'eessssSsk.',
+    '.ksSb' + n('s', 9) + 'sS' + n('s', 9) + 'bSsk.',
+    '.ksSbb' + n('s', 7) + 'SssS' + n('s', 7) + 'bbSsk.',
+    '.ksSbbbbsssbbbbbbbbsssbbbbSsk.',
+    '..k' + n('b', 7) + 'sbbbBBbbbs' + n('b', 7) + 'k..',
+    '..k' + n('b', 8) + 'bmwwwwmb' + n('b', 8) + 'k..',
+    '..k' + n('b', 10) + 'mmmm' + n('b', 10) + 'k..',
+    '..kbbbbbbBbbbbbbbbbbbBbbbbbk..',
+    '...kbbbbBbbbbbbbbbbbbBbbbbk...',
+    '....kbbbbbbbbbBBbbbbbbbbbk....',
+    '.....k' + n('b', 18) + 'k.....',
+    '......k' + n('b', 16) + 'k......',
+    '.......k' + n('b', 14) + 'k.......',
+    '........kk' + n('b', 10) + 'kk........',
+    '..........kkkkkkkkkk..........',
+  ];
+  selfieHead = spriteFrom(rows, hp);
+  return selfieHead;
+}
+function drawSelfieBody(x, cx, top) {
+  const J = '#23262d', JL = '#383d47', K = '#17121c', SH = '#f4f2ea', T1 = '#2f7a3e', T2 = '#1f5a2a';
+  for (let y = top; y < SELFIE_H; y++) {
+    const hw = Math.round(clamp(9 + (y - top) * 2.6, 0, 31));
+    x.fillStyle = K; x.fillRect(cx - hw - 1, y, hw * 2 + 3, 1);
+    x.fillStyle = J; x.fillRect(cx - hw, y, hw * 2 + 1, 1);
+    if (y > top + 2) {
+      const v = Math.round(Math.max(4, 8 - (y - top - 2) * .15));
+      x.fillStyle = JL; x.fillRect(cx - v - 2, y, v * 2 + 5, 1);
+      x.fillStyle = SH; x.fillRect(cx - v, y, v * 2 + 1, 1);
+    }
+  }
+  // tie
+  x.fillStyle = T2; x.fillRect(cx - 2, top + 6, 5, 4);
+  x.fillStyle = T1; x.fillRect(cx - 1, top + 6, 3, 3);
+  for (let y = top + 10; y < SELFIE_H; y++) {
+    const w2 = y < top + 15 ? 3 : 5;
+    x.fillStyle = T1; x.fillRect(cx - (w2 >> 1), y, w2, 1);
+    x.fillStyle = T2; x.fillRect(cx - (w2 >> 1) + w2 - 1, y, 1, 1);
+  }
+  // his arm reaching out to hold the phone, out of frame at the bottom left:
+  // nearer the camera, so a touch brighter, with a lit edge and a few fabric folds
+  for (let y = top + 6; y < SELFIE_H; y++) {
+    const t = (y - top - 6) / (SELFIE_H - top - 6);
+    const xl = Math.round(lerp(cx - 31, -16, t)), xr = Math.round(lerp(cx - 20, 24, t));
+    x.fillStyle = K; x.fillRect(xl - 1, y, xr - xl + 3, 1);
+    x.fillStyle = '#2b2f37'; x.fillRect(xl, y, xr - xl + 1, 1);
+    x.fillStyle = '#4a505c'; x.fillRect(xr - 2, y, 2, 1);
+    x.fillStyle = '#3a3f4a'; x.fillRect(xl + 1, y, 2, 1);
+    if ((y - top) % 11 === 4) { x.fillStyle = '#1b1d23'; for (let k = 0; k < 6; k++) x.fillRect(Math.round(lerp(xl, xr, .3)) + k, y + (k >> 1), 1, 1); }
+  }
+}
+function renderSelfie() {
+  const p = pal, wx = S.wx, n = S.night, lo = S.lightsOn, occ = occupancy(S.parts.h);
+  const [c, x] = makeCanvas(SELFIE_W, SELFIE_H);
+  // the sky behind him, looking a little upwards
+  const id = x.createImageData(SELFIE_W, SELFIE_H), d = id.data, BANDS = 12, rows = [];
+  for (let k = 0; k <= BANDS; k++) rows.push(skyColorAt(p, .12 + .88 * k / BANDS));
+  for (let y = 0; y < SELFIE_H; y++) {
+    const tt = y / SELFIE_H * BANDS, bi = Math.floor(tt), fr = tt - bi;
+    for (let i = 0; i < SELFIE_W; i++) {
+      const col = rows[Math.min(BANDS, bi + (fr > BAYER[(y & 3) * 4 + (i & 3)] ? 1 : 0))], o = (y * SELFIE_W + i) * 4;
+      d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+    }
+  }
+  x.putImageData(id, 0, 0);
+  const veil = clamp(1 - clamp(wx.cloud - .5, 0, 1) * 1.6 - wx.fog * .6, 0, 1);
+  const starA = smooth(-4, -12, S.a.sunAlt) * (1 - wx.cloud * .9) * (1 - wx.fog);
+  if (starA > .02) { const r = seeded(12); for (let i = 0; i < 28; i++) { x.fillStyle = `rgba(255,250,235,${starA * (.35 + r() * .65)})`; x.fillRect(r() * SELFIE_W | 0, r() * 64 | 0, 1, 1); } }
+  x.globalCompositeOperation = 'lighter';
+  if (S.a.moonAlt > 0 && n > .3) drawGlow('#cfd8ff', 14, 12, 14, .3 * veil, x);
+  if (S.a.sunAlt > -2 && S.a.sunAlt < 14) drawGlow('#ffcf90', -4, 22, 44, .55 * veil, x);
+  x.globalCompositeOperation = 'source-over';
+  if (S.a.moonAlt > 0 && n > .3 && veil > 0) drawMoonDisc(x, 14, 12, S.a.phase, veil, p.top);
+  const nc = Math.round(clamp(wx.cloud, 0, 1) * 4);
+  [[-14, 3], [50, 10], [10, 22], [64, 0]].slice(0, nc).forEach(([px, py], i) => cloudCans[i] && x.drawImage(cloudCans[i], px, py));
+  if (wx.cloud > .75) { x.fillStyle = rgba(mixC(p.mid, p.top, .3), clamp((wx.cloud - .75) * 3.2, 0, .8)); for (let i = 0; i < SELFIE_W; i += 2) x.fillRect(i, 0, 2, 14 + Math.round(5 * Math.sin(i * .09) + 3 * Math.sin(i * .23))); }
+  // the city behind: a slice of the same skyline, hazy with distance
+  const MS = 120, MY = 20;
+  const [l, lx] = makeCanvas(SELFIE_W, SELFIE_H);
+  lx.drawImage(mid, MS, MY, SELFIE_W, SELFIE_H, 0, 0, SELFIE_W, SELFIE_H);
+  tintLayer(l, lx, p.tint, p.hor, .3 - n * .12 + wx.fog * .4 + wx.dust * .2);
+  x.drawImage(l, 0, 0);
+  for (const m of midLights) {
+    if (m.blink || m.x < MS || m.x >= MS + SELFIE_W) continue;
+    const v = lo * occ - m.th;
+    if (v > 0) { x.globalAlpha = Math.min(1, v * 5) * .85; x.fillStyle = m.th < .3 ? '#ffd890' : '#f6e2b0'; x.fillRect(m.x - MS, m.y - MY, m.w, m.h); }
+  }
+  x.globalAlpha = 1;
+  // palms and the New Clock, straight from the street art, showing the real time
+  const TX = 72, TY = -6, SRC = NEW_CLOCK_X - 36, OX = TX - 36;
+  const [t, tx] = makeCanvas(SELFIE_W, SELFIE_H);
+  const keepG = g; g = tx;
+  palm(-1, 120, 76, seeded(4)); palm(99, 120, 62, seeded(8));
+  g = keepG;
+  tx.drawImage(back, SRC, 0, 72, 126, OX, TY, 72, 126);
+  drawClock(tx, TX, 33 + TY, 9, '#f6f2e6', '#26262a');
+  tintLayer(t, tx, p.tint, p.hor, wx.fog * .25 + wx.dust * .08);
+  x.drawImage(t, 0, 0);
+  for (const bl of backLights) {
+    if (!bl.w || bl.x < SRC || bl.x > SRC + 72 || bl.y > 126) continue;
+    const v = (lo * occ - bl.th) * 5;
+    if (v > 0) { x.globalAlpha = Math.min(1, v) * .85; x.fillStyle = bl.c; x.fillRect(bl.x - SRC + OX, bl.y + TY, bl.w, bl.h); }
+  }
+  x.globalAlpha = 1;
+  x.globalCompositeOperation = 'lighter';
+  for (const gl of glows) if (gl.layer === 0 && gl.x > SRC && gl.x < SRC + 72) drawGlow(gl.c, gl.x - SRC + OX, gl.y + TY, gl.r, (lo - gl.th) * 1.8, x);
+  x.globalCompositeOperation = 'source-over';
+  if (lo > .3) { x.globalAlpha = Math.min(1, (lo - .3) * 3); drawClock(x, TX, 33 + TY, 9, '#fff4d8', '#2a2420'); x.globalAlpha = 1; }
+  if (wx.fog > 0) { x.fillStyle = rgba(p.hor, wx.fog * .35); x.fillRect(0, 0, SELFIE_W, SELFIE_H); }
+  // him, lit by the phone's flash (it matters more the darker it is)
+  const [hc, hx] = makeCanvas(SELFIE_W, SELFIE_H);
+  drawSelfieBody(hx, 36, 62);
+  hx.drawImage(selfieHeadSprite(), 21, 40);
+  tintLayer(hc, hx, mixC(p.tint, [255, 255, 255], .45 + .45 * n));
+  x.drawImage(hc, 0, 0);
+  x.globalCompositeOperation = 'lighter';
+  drawGlow('#ffffff', 36, 54, 16, .1 + .22 * n, x);
+  x.globalCompositeOperation = 'source-over';
+  // weather on the lens
+  const r = seeded(S.parts.mi + 7);
+  if (wx.rain > .1) {
+    x.fillStyle = rgba(mixC(p.hor, [210, 220, 240], .5), .6);
+    for (let i = 0; i < 40 * wx.rain; i++) x.fillRect(r() * SELFIE_W | 0, r() * SELFIE_H | 0, 1, 3);
+    for (let i = 0; i < 4; i++) { const dx = r() * SELFIE_W | 0, dy = r() * SELFIE_H | 0; x.fillStyle = 'rgba(255,255,255,.3)'; x.fillRect(dx, dy, 2, 2); x.fillStyle = 'rgba(255,255,255,.6)'; x.fillRect(dx, dy, 1, 1); }
+  }
+  if (wx.snow > .1) { x.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 40 * wx.snow; i++) { const s2 = r() < .3 ? 2 : 1; x.fillRect(r() * SELFIE_W | 0, r() * SELFIE_H | 0, s2, s2); } }
+  if (wx.dust) { x.fillStyle = `rgba(214,170,110,${wx.dust * .14})`; x.fillRect(0, 0, SELFIE_W, SELFIE_H); }
+  // film-camera time stamp, in Homs time
+  const label = `${pad(S.parts.h)}:${pad(S.parts.mi)}`, stamp = pixelText(label, 8, '#ff9a3c');
+  const sx = SELFIE_W - stamp.width - 3, sy = SELFIE_H - stamp.height - 2;
+  x.globalAlpha = .55; x.drawImage(pixelText(label, 8, '#4a1a00'), sx + 1, sy + 1); x.globalAlpha = 1;
+  x.drawImage(stamp, sx, sy);
+  return c;
 }
 
 /* ===================================================================
@@ -1712,89 +1882,125 @@ function updateBubble() {
 }
 
 /* ===================================================================
-   Sound: a warm lo-fi loop (soft keys, felt piano lead, tape crackle)
+   Sound: an original lo-fi loop with a Homsi accent, in maqam Bayati
+   (oud ostinato, ney melody, qanun, a soft maqsum darbuka, tape crackle).
+   Put a file called music.mp3 next to index.html to play that instead.
    =================================================================== */
 const sound = (() => {
-  let ac = null, master, bus, verb, rainGain, timer, nextT = 0, step = 0, noiseBuf;
-  const BPM = 74, E = 60 / BPM / 2, SWING = 0.12;
+  let ac = null, master, bus, echo, rainGain, timer, nextT = 0, step = 0, noiseBuf, fileAudio = null, useFile = false;
+  const BPM = 80, E = 60 / BPM / 2, SWING = 0.1;
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
-  // Fmaj7 · Em7 · Dm7 · Cmaj7, two bars each, melody on C major pentatonic
-  const CH = [[53, 57, 60, 64], [53, 57, 60, 64], [52, 55, 59, 62], [52, 55, 59, 62], [50, 53, 57, 60], [50, 53, 57, 60], [48, 52, 55, 59], [48, 52, 55, 59]];
+  const EH = 63.5; // E half-flat: the quarter tone that makes Bayati sound like home
+  // Dm · Dm · C · C · Bb · Bb · Gm · Dm
+  const CH = [[50, 57, 62, 65], [50, 57, 62, 65], [48, 55, 60, 67], [48, 55, 60, 67], [46, 53, 58, 62], [46, 53, 58, 62], [43, 50, 55, 58], [50, 57, 62, 65]];
   const MEL = [
-    [[69, 3], [67, 1], [64, 2], [72, 2]],
-    [[69, 4], [null, 4]],
-    [[67, 2], [71, 2], [74, 3], [71, 1]],
-    [[69, 4], [null, 4]],
-    [[65, 2], [69, 2], [72, 3], [74, 1]],
-    [[76, 3], [74, 1], [72, 4]],
-    [[71, 2], [67, 2], [64, 2], [67, 2]],
-    [[67, 2], [64, 6]],
+    [[69, 2], [67, 1], [65, 1], [EH, 1], [65, 1], [67, 2]],
+    [[69, 3], [70, 1], [69, 2], [67, 1], [69, 1]],
+    [[67, 2], [65, 1], [67, 1], [69, 2], [67, 1], [65, 1]],
+    [[EH, 3], [65, 1], [62, 4]],
+    [[74, 2], [72, 1], [70, 1], [69, 2], [70, 1], [72, 1]],
+    [[74, 3], [72, 1], [70, 1], [69, 1], [67, 2]],
+    [[65, 1], [67, 1], [69, 1], [70, 1], [69, 2], [67, 1], [65, 1]],
+    [[EH, 2], [62, 6]],
   ];
   const events = new Array(64).fill(null);
-  MEL.forEach((bar, i) => { let pos = i * 8; for (const [m, len] of bar) { if (m) events[pos] = [m, len]; pos += len; } });
-  function env(t, a, hold, rel, vol, dest = bus) {
+  MEL.forEach((bar, i) => { let pos = i * 8; for (const [m, len] of bar) { events[pos] = [m, len]; pos += len; } });
+  const OUD = [0, null, 1, 0, null, 0, 1, 2]; // root, fifth, octave on the eighths
+  function amp(t, attack, peak, decay, dest = bus) {
     const gn = ac.createGain();
-    gn.gain.setValueAtTime(0.0001, t);
-    gn.gain.exponentialRampToValueAtTime(vol, t + a);
-    gn.gain.setTargetAtTime(0.0001, t + a + hold, rel);
+    gn.gain.setValueAtTime(.0001, t);
+    gn.gain.exponentialRampToValueAtTime(peak, t + attack);
+    gn.gain.exponentialRampToValueAtTime(.0001, t + attack + decay);
     gn.connect(dest);
     return gn;
   }
-  // soft electric-piano-ish note: sine + quiet octave, gentle bell attack
-  function keys(m, t, dur, vol, send = 0) {
-    const g1 = env(t, .012, dur * .25, dur * .45, vol);
-    for (const [mul, v, type] of [[1, 1, 'sine'], [2, .18, 'sine'], [1, .25, 'triangle']]) {
+  // plucked oud: bright attack that darkens fast, a hair of pitch settle
+  function oud(m, t, vol) {
+    const f = mtof(m), lp = ac.createBiquadFilter(), out = amp(t, .004, vol, .85);
+    lp.type = 'lowpass'; lp.Q.value = 2.5;
+    lp.frequency.setValueAtTime(2800, t); lp.frequency.exponentialRampToValueAtTime(480, t + .28);
+    lp.connect(out);
+    for (const [type, mul] of [['sawtooth', .8], ['triangle', .6]]) {
       const o = ac.createOscillator(), og = ac.createGain();
-      o.type = type; o.frequency.value = mtof(m) * mul; o.detune.value = (Math.random() - .5) * 6;
-      og.gain.value = v; o.connect(og).connect(g1); o.start(t); o.stop(t + dur * 3);
+      o.type = type;
+      o.frequency.setValueAtTime(f * 1.01, t); o.frequency.exponentialRampToValueAtTime(f, t + .03);
+      og.gain.value = mul; o.connect(og).connect(lp); o.start(t); o.stop(t + 1);
     }
-    if (send) { const sg = ac.createGain(); sg.gain.value = send; g1.connect(sg).connect(verb); }
+  }
+  // qanun: a brighter, shorter pluck
+  function qanun(m, t, vol) {
+    const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = mtof(m);
+    o.connect(amp(t, .003, vol, .5)); o.start(t); o.stop(t + .7);
+  }
+  // ney: breathy flute with a vibrato that blooms on long notes
+  function ney(m, t, dur, vol) {
+    const f = mtof(m), end = t + dur + .45;
+    const env = ac.createGain();
+    env.gain.setValueAtTime(.0001, t);
+    env.gain.exponentialRampToValueAtTime(vol, t + .09);
+    env.gain.setValueAtTime(vol, t + Math.max(.1, dur - .1));
+    env.gain.exponentialRampToValueAtTime(.0001, t + dur + .3);
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    env.connect(lp); lp.connect(bus);
+    const send = ac.createGain(); send.gain.value = .35; lp.connect(send).connect(echo);
+    const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const o2 = ac.createOscillator(); o2.type = 'triangle'; o2.frequency.value = f * 2;
+    const g2 = ac.createGain(); g2.gain.value = .07;
+    const lfo = ac.createOscillator(), depth = ac.createGain();
+    lfo.frequency.value = 5.3;
+    depth.gain.setValueAtTime(0, t); depth.gain.linearRampToValueAtTime(f * .009, t + Math.min(.6, dur * .7));
+    lfo.connect(depth); depth.connect(o.frequency);
+    const br = ac.createBufferSource(); br.buffer = noiseBuf;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 2.5;
+    const bg = ac.createGain(); bg.gain.value = .22;
+    o.connect(env); o2.connect(g2).connect(env); br.connect(bp).connect(bg).connect(env);
+    for (const n of [o, o2, lfo]) { n.start(t); n.stop(end); }
+    br.start(t, Math.random()); br.stop(end);
   }
   function pad(ch, t, dur) {
-    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
-    const g1 = ac.createGain();
-    g1.gain.setValueAtTime(0.0001, t); g1.gain.exponentialRampToValueAtTime(.05, t + .6); g1.gain.setTargetAtTime(0.0001, t + dur - .3, .4);
-    lp.connect(g1).connect(bus);
-    for (const m of ch) for (const d of [-7, 7]) {
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 620;
+    const gn = ac.createGain();
+    gn.gain.setValueAtTime(.0001, t); gn.gain.exponentialRampToValueAtTime(.032, t + .8); gn.gain.setTargetAtTime(.0001, t + dur - .3, .45);
+    lp.connect(gn).connect(bus);
+    for (const m of ch) for (const d of [-6, 6]) {
       const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = d;
-      const og = ac.createGain(); og.gain.value = .09; o.connect(og).connect(lp); o.start(t); o.stop(t + dur + 1.5);
+      const og = ac.createGain(); og.gain.value = .09; o.connect(og).connect(lp); o.start(t); o.stop(t + dur + 1.6);
     }
   }
   function bass(m, t, dur) {
     const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = mtof(m);
-    o.connect(env(t, .02, dur * .6, .15, .22)); o.start(t); o.stop(t + dur + .6);
+    o.connect(amp(t, .02, .2, dur)); o.start(t); o.stop(t + dur + .2);
   }
-  function kick(t) {
+  function doum(t, vol) {
     const o = ac.createOscillator(); o.type = 'sine';
-    o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(42, t + .12);
-    o.connect(env(t, .004, .03, .08, .35)); o.start(t); o.stop(t + .4);
+    o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(48, t + .14);
+    o.connect(amp(t, .004, vol, .28)); o.start(t); o.stop(t + .4);
   }
-  function hiss(t, dur, vol, type, freq) {
+  function hit(t, vol, type, freq, decay) {
     const src = ac.createBufferSource(); src.buffer = noiseBuf;
-    const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = .8;
-    src.connect(f).connect(env(t, .003, dur * .3, dur * .4, vol)); src.start(t, Math.random() * 1.5); src.stop(t + dur * 3);
+    const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = type === 'bandpass' ? 2 : .7;
+    src.connect(f).connect(amp(t, .002, vol, decay)); src.start(t, Math.random() * 1.5); src.stop(t + decay + .05);
   }
   function play(s, t) {
     const i = s % 64, bar = i >> 3, pos = i & 7, pass = (s >> 6) % 4;
     if (pos % 2) t += E * SWING;
     const ch = CH[bar];
     if (pos === 0 && bar % 2 === 0) pad(ch, t, E * 16);
-    if (pos === 0) bass(ch[0] - 12, t, E * 3);
-    if (pos === 3) bass(ch[0] - 12, t, E * 1);
-    if (pos === 4) bass(ch[2] - 12, t, E * 3);
-    // gentle broken-chord keys
-    if (pass !== 0 || bar > 1) if ([0, 2, 3, 5, 6].includes(pos)) keys(ch[[0, 1, 2, 3, 2, 1, 3, 2][pos]] + 12, t, E * 2, .035);
-    // melody from the second time round
+    // oud ostinato
+    const o = OUD[pos];
+    if (o !== null) oud([ch[0], ch[1], ch[2]][o], t, pos === 0 ? .075 : .055);
+    // bass with the doum
+    if (pos === 0 || pos === 4) bass(ch[0] - 12, t, E * 3);
+    // the tune: ney on the 2nd and 3rd time round, qanun takes it up an octave on the 4th
     const ev = events[i];
-    if (ev && pass > 0 && pass !== 2) keys(ev[0] + (pass === 3 ? 12 : 0), t, ev[1] * E * 1.2, .07, .35);
-    // soft drums
-    if (pos === 0 || pos === 5) kick(t);
-    if (pos === 2 || pos === 6) hiss(t, .12, .05, 'bandpass', 1800);
-    if (pass !== 0) hiss(t, .04, pos % 2 ? .012 : .02, 'highpass', 7000);
-    // a little darbuka "tek" now and then, for Homs
-    if (pos === 7 && bar % 2 === 1) hiss(t, .05, .025, 'bandpass', 3200);
-    // vinyl crackle
-    if (Math.random() < .5) hiss(t + Math.random() * E, .01, .015, 'highpass', 3000);
+    if (ev && (pass === 1 || pass === 2)) ney(ev[0], t, ev[1] * E * 1.05, .034);
+    if (ev && pass === 3) { qanun(ev[0] + 12, t, .05); if (ev[1] >= 3) for (let k = 1; k < ev[1] * 2; k++) qanun(ev[0] + 12, t + k * E / 2, .028); }
+    // soft maqsum: doum tek . tek doum . tek .
+    if (pos === 0 || pos === 4) doum(t, .26);
+    if (pos === 1 || pos === 3 || pos === 6) hit(t, .05, 'bandpass', 3200, .06);
+    if (pos === 7 && bar % 2) hit(t, .03, 'bandpass', 2300, .05);
+    if (pass > 0) hit(t + E / 2, .012, 'highpass', 8000, .03); // riq shimmer
+    if (Math.random() < .45) hit(t + Math.random() * E, .012, 'highpass', 3000, .01); // vinyl crackle
   }
   function tick() {
     while (nextT < ac.currentTime + .2) { play(step, nextT); nextT += E; step++; }
@@ -1803,13 +2009,15 @@ const sound = (() => {
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
     master = ac.createGain(); master.gain.value = 0;
-    const warm = ac.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 5200;
-    master.connect(warm).connect(ac.destination);
-    bus = ac.createGain(); bus.connect(master);
-    // simple echo for the melody
-    verb = ac.createDelay(1); verb.delayTime.value = E * 3;
-    const fb = ac.createGain(); fb.gain.value = .32; const vlp = ac.createBiquadFilter(); vlp.type = 'lowpass'; vlp.frequency.value = 2200;
-    verb.connect(vlp).connect(fb).connect(verb); vlp.connect(master);
+    const warm = ac.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 5000;
+    const glue = ac.createDynamicsCompressor();
+    glue.threshold.value = -20; glue.knee.value = 12; glue.ratio.value = 3; glue.attack.value = .01; glue.release.value = .25;
+    master.connect(warm).connect(glue).connect(ac.destination);
+    bus = ac.createGain(); bus.gain.value = 3.2; bus.connect(master);
+    echo = ac.createDelay(1); echo.delayTime.value = E * 3;
+    const fb = ac.createGain(); fb.gain.value = .3;
+    const elp = ac.createBiquadFilter(); elp.type = 'lowpass'; elp.frequency.value = 2000;
+    echo.connect(elp).connect(fb).connect(echo); elp.connect(master);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const rs = ac.createBufferSource(); rs.buffer = noiseBuf; rs.loop = true;
@@ -1817,28 +2025,43 @@ const sound = (() => {
     rainGain = ac.createGain(); rainGain.gain.value = 0;
     rs.connect(lp).connect(rainGain).connect(master); rs.start();
   }
-  const api = {
+  function sfxReady() {
+    try { if (!ac) init(); if (ac.state !== 'running') ac.resume(); } catch { return false; }
+    if (!timer) master.gain.setTargetAtTime(.85, ac.currentTime, .05);
+    return ac.state === 'running';
+  }
+  return {
     on: true,
-    get running() { return !!ac && ac.state === 'running'; },
+    get running() { return useFile ? !!fileAudio && !fileAudio.paused : !!ac && ac.state === 'running' && !!timer; },
+    // use music.mp3 if one sits next to the page
+    async probe() {
+      try { const r = await fetch('music.mp3', { method: 'HEAD', cache: 'no-store' }); useFile = r.ok; } catch { useFile = false; }
+    },
     start() {
+      if (useFile) {
+        if (!fileAudio) { fileAudio = new Audio('music.mp3'); fileAudio.loop = true; fileAudio.volume = .7; }
+        fileAudio.play().catch(() => {});
+        return;
+      }
       if (!ac) init();
       if (ac.state !== 'running') ac.resume();
       if (!timer) { nextT = ac.currentTime + .08; timer = setInterval(tick, 30); }
-      master.gain.setTargetAtTime(.6, ac.currentTime, .6);
+      master.gain.setTargetAtTime(.85, ac.currentTime, .6);
     },
     stop() {
+      if (fileAudio) fileAudio.pause();
       if (!ac) return;
       master.gain.setTargetAtTime(0, ac.currentTime, .15);
       clearInterval(timer); timer = null;
     },
     toggle() { this.on = !this.on; this.on ? this.start() : this.stop(); },
     shutter() {
-      if (!this.running) return;
+      if (!this.on || !sfxReady()) return;
       const t = ac.currentTime;
-      hiss(t, .03, .25, 'highpass', 2500); hiss(t + .07, .04, .2, 'highpass', 1800);
+      hit(t, .25, 'highpass', 2500, .03); hit(t + .07, .2, 'highpass', 1800, .04);
     },
     thunder() {
-      if (!this.running) return;
+      if (!this.on || !ac || ac.state !== 'running') return;
       const t = ac.currentTime + .3 + Math.random() * .8;
       const src = ac.createBufferSource(); src.buffer = noiseBuf;
       const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
@@ -1846,7 +2069,6 @@ const sound = (() => {
       src.connect(f).connect(gn).connect(master); src.start(t); src.stop(t + 2.6);
     },
   };
-  return api;
 })();
 // Browsers only allow sound after the visitor interacts, so the music starts on the very first touch, click or key.
 function autoStartSound() {
@@ -1865,9 +2087,11 @@ function syncSound() { const b = $('#btnSound'); b.textContent = sound.on ? '♪
 let polaroidTimer;
 function showPolaroid(src) {
   const el = $('#polaroid');
-  el.querySelector('img').src = src;
+  const img = el.querySelector('img');
+  img.src = src;
   const { h, mi } = S.parts;
-  el.querySelector('.cap').textContent = `Selfie · ${pad(h)}:${pad(mi)}`;
+  img.alt = `His selfie in front of the New Clock in Homs at ${pad(h)}:${pad(mi)}`;
+  el.querySelector('.cap').textContent = `New Clock · ${fmtDay.format(S.ms)}`;
   el.hidden = false;
   el.classList.remove('out'); void el.offsetWidth; el.classList.add('in');
   clearTimeout(polaroidTimer);
@@ -1944,6 +2168,7 @@ async function boot() {
   cam.x = wrapX(pl.x - W / 2 + 28); pl.x = cam.x + W / 2 - 28;
   $('#loading').remove();
   syncStroll(); syncSound();
+  await Promise.race([sound.probe(), new Promise(r => setTimeout(r, 1200))]);
   autoStartSound();
   fetchWeather();
   setInterval(fetchWeather, 12 * 60e3);

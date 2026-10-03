@@ -1,6 +1,6 @@
 # Homs Walk · حمص
 
-A tiny pixel-art stroll through **Homs, Syria** that plays itself, like a looping video. Open the page and he starts walking: past the Old Clock, down Al-Dablan Street (he stops for a plate of hummus, in Homs), through New Clock Square (he turns his back to the tower and takes a selfie), into the covered souq, past the basalt houses of Old Homs, and on to Khalid ibn al-Walid Mosque. After the mosque the street carries on seamlessly back to the start, so the walk never ends.
+A tiny pixel-art stroll through **Homs, Syria** that plays itself, like a looping video. Open the page and he starts walking: past the Old Clock, down Al-Dablan Street (he stops for a plate of hummus, in Homs), through New Clock Square (he turns his back to the tower and takes a selfie, which pops up as a polaroid drawn from his camera's side: him smiling, the clock behind him showing the real time, in the real light and weather), into the covered souq, past the basalt houses of Old Homs, and on to Khalid ibn al-Walid Mosque. After the mosque the street carries on seamlessly back to the start, so the walk never ends.
 
 The sky, sun, moon, stars, weather and clocks all follow **Homs right now**.
 
@@ -22,10 +22,15 @@ To put it on the web, turn on GitHub Pages for this repo (Settings → Pages →
 | `←` `→` (hold `Shift` to hurry) | take over for a bit. Auto-walk comes back after 3 s |
 | `I` or **Homs now** | show the time, date, Hijri date and weather in Homs |
 | `P` | try another time of day or weather |
-| `M` | soundtrack on/off: an original lo-fi loop. It's on by default, and starts on your first tap, click or key, because browsers don't allow sound before that |
+| `M` | soundtrack on/off. It's on by default, and starts on your first tap, click or key, because browsers don't allow sound before that |
 
 Shareable moments: `?t=18:30&w=rain&x=1600` (time, weather, position).
 Weather options: `clear` `partly` `overcast` `fog` `rain` `storm` `snow` `dust`.
+
+## Music
+The built-in soundtrack is an original lo-fi loop with a Homsi accent: maqam Bayati (with its real quarter-tone E), an oud ostinato, a ney melody, a qanun, a soft maqsum darbuka and some tape crackle. It's all synthesised in the browser.
+
+To use your own track instead, put a file called `music.mp3` next to `index.html`. The page picks it up automatically and loops it. Only use music you have the right to share.
 
 ## How it's made
 `index.html` (the info panel and controls) plus `main.js` (everything else), around 110 KB in total. All the art is drawn in code on a 180px-tall canvas that's scaled up with crisp pixels. Fonts come from Google Fonts: Pixelify Sans, Silkscreen and Noto Kufi Arabic.
