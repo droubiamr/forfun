@@ -4,7 +4,7 @@ Paste everything below the line into a fresh Claude session. This is the prompt 
 
 ---
 
-You're building **Homs Walk**, a small pixel-art side-scroller you can stroll through in the browser. It shows the city of Homs, Syria, synced to Homs's **real local time, date, and weather**. It lives in the `homs-walk/` folder of my `forfun` repo, where everything is built with Claude at full effort, just for fun. Make it charming, polished, and finished, not a tech demo.
+You're building **Homs Walk**, a small pixel-art side-scroller you can stroll through in the browser. It shows the city of Homs, Syria, synced to Homs's **real local time, date, and weather**. It lives in the `love-sy/public/homs/` folder of my `forfun` repo, where everything is built with Claude at full effort, just for fun. Make it charming, polished, and finished, not a tech demo.
 
 ## The vibe (reference)
 This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny chibi pixel character walks left and right along a sidewalk. Behind them are layered parallax backgrounds: a far mountain (Mt. Rainier), a mid skyline (the Space Needle), and nearby storefronts (Pike Place "MARKET" sign, a flower stall, a COFFEE shop with glowing windows). A road with little pixel cars runs along the bottom, with a crosswalk, streetlamps, birds, and drifting clouds. A small label at the top left names the current area, and buttons at the top right switch time and weather. Everything is chunky, crisp pixels in a warm, cozy palette with a sunset gradient sky.
@@ -67,8 +67,8 @@ This is inspired by a "Seattle city walk" made in Claude. In that one, a tiny ch
 - Opens by double-clicking `index.html` *and* works on GitHub Pages.
 
 ## Deliverables
-- `homs-walk/index.html` (+ `main.js` if split)
-- Update `homs-walk/README.md`: what it is, controls, how the live time and weather work, and credits (Open-Meteo).
+- `love-sy/public/homs/index.html` (+ `main.js` if split)
+- Update `love-sy/public/homs/README.md`: what it is, controls, how the live time and weather work, and credits (Open-Meteo).
 - Add a row for it in the root `README.md` projects table.
 - Before you finish, run it in a headless browser, take screenshots at **noon clear, sunset, night, and rain** (use preview mode), look at them critically, fix anything ugly, then commit.
 

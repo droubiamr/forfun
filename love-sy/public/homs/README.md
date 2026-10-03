@@ -7,7 +7,7 @@ The sky, sun, moon, stars, weather and clocks all follow **Homs right now**.
 ## Run it
 Open `index.html` in a browser, or serve the folder (`python3 -m http.server`). There's no build step.
 
-To put it on the web, turn on GitHub Pages for this repo (Settings → Pages → deploy from branch). The site will be at `/<repo>/homs-walk/`.
+It lives at `love.sy/homs/`. See the [love.sy README](../../README.md) for deploying.
 
 ## What's live
 - **Time**: `Asia/Damascus` (UTC+3). The clock faces in the scene show the real Homs time.

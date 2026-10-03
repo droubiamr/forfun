@@ -29,7 +29,8 @@
     transition: background-color 1.5s linear;
   }
   #c {
-    position: absolute;
+    position: fixed;
+    display: block;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
@@ -76,7 +77,7 @@
     position: fixed; right: 12px; top: 12px;
     display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
   }
-  button, select {
+  button, select, .btn {
     font: 700 12px "Pixelify Sans", ui-monospace, monospace;
     color: var(--ink);
     background: var(--panel);
@@ -86,8 +87,9 @@
     cursor: pointer;
     box-shadow: 2px 2px 0 rgba(0, 0, 0, .35);
   }
+  .btn { text-decoration: none; display: inline-block; }
   button[aria-pressed="true"] { background: var(--ink); color: #1d1724; }
-  button:focus-visible, select:focus-visible, input:focus-visible, #hud:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:focus-visible, .btn:focus-visible, select:focus-visible, input:focus-visible, #hud:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   #preview {
     position: fixed; right: 12px;
@@ -132,7 +134,7 @@
 
   #soundHint {
     position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
-    padding: 6px 12px; font-size: 13px; pointer-events: none;
+    padding: 6px 12px; font-size: 13px; pointer-events: none; white-space: nowrap;
     animation: blink 2.4s steps(1) infinite;
   }
   #polaroid {
@@ -155,6 +157,7 @@
   @keyframes blink { 50% { opacity: .25; } }
   @keyframes pop { from { transform: translate(-50%, -80%) scale(.6); } }
   @media (max-width: 560px) {
+    #zone { top: 54px; }
     #time { font-size: 22px; }
     #hud { min-width: 0; padding: 6px 8px; }
     #zone .en { font-size: 12px; }
@@ -191,6 +194,7 @@
 </div>
 
 <div id="controls">
+  <a id="btnHome" class="btn" href="../" title="All cities on love.sy" aria-label="All cities">⌂</a>
   <button id="btnStroll" aria-pressed="false" title="Pause / walk (Space)">❚❚ Pause</button>
   <button id="btnSound" aria-pressed="true" title="Soundtrack (M)">♪ On</button>
   <button id="btnInfo" aria-expanded="false" aria-controls="hud" title="Time and weather in Homs (I)">Homs now</button>

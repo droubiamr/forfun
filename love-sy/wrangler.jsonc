@@ -1,0 +1,13 @@
+{
+  // love.sy: a static site served by a Cloudflare Worker (no server code, just files in ./public)
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "love-sy",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "love.sy", "custom_domain": true }
+  ]
+}

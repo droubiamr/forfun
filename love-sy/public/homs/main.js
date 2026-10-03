@@ -10,7 +10,7 @@
 const H = 180, GROUND = 140, FEET = 150, WORLD_W = 2904; // a multiple of every repeating street pattern, so the loop is seamless
 const NEW_CLOCK_X = 1190;
 const MID_P = WORLD_W / 4, FAR_A_P = WORLD_W / 8, FAR_B_P = WORLD_W / 6;
-const MAX_W = 480;
+const MAX_W = 640;
 let W = 320;
 const LAT = 34.7324, LNG = 36.7137, TZ = 'Asia/Damascus';
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1295,19 +1295,24 @@ function wsx(x, m = 80) { let s = Math.round(x) - Math.round(cam.x); if (s < -m)
    Render
    =================================================================== */
 const canvas = $('#c');
-const ctx = canvas.getContext('2d');
+const screenCtx = canvas.getContext('2d');
+// the street is drawn into a 180px-tall scene, then placed on a canvas that fills the whole screen
+const [scene, ctx] = makeCanvas(320, H);
+let VH = H, OFF = 0;
 let buf, bctx, mask, mctx;
 function resize() {
   const vw = innerWidth, vh = innerHeight;
-  W = clamp(Math.round(H * vw / vh), 220, MAX_W);
-  canvas.width = W; canvas.height = H;
-  ctx.imageSmoothingEnabled = false;
+  // fill the screen edge to edge: tall screens get more sky above the street, very wide ones lose a little at the top
+  let s = vh / H;
+  W = Math.round(vw / s);
+  if (W < 150) { W = 150; s = vw / W; } else if (W > MAX_W) { W = MAX_W; s = vw / W; }
+  VH = Math.max(1, Math.round(vh / s)); OFF = VH - H;
+  canvas.width = W; canvas.height = VH;
+  scene.width = W; scene.height = H;
+  ctx.imageSmoothingEnabled = false; screenCtx.imageSmoothingEnabled = false;
   [buf, bctx] = makeCanvas(W, H); [mask, mctx] = makeCanvas(W, H);
-  let s = Math.min(vw / W, vh / H);
-  if (s >= 2) s = Math.floor(s * 2) / 2;
-  const cw = Math.round(W * s), ch = Math.round(H * s);
-  Object.assign(canvas.style, { width: cw + 'px', height: ch + 'px', left: ((vw - cw) >> 1) + 'px', top: ((vh - ch) >> 1) + 'px' });
-  canvas._s = s; canvas._l = (vw - cw) >> 1; canvas._t = (vh - ch) >> 1;
+  Object.assign(canvas.style, { width: vw + 'px', height: vh + 'px', left: '0px', top: '0px' });
+  canvas._s = vh / VH; canvas._l = 0; canvas._t = OFF * (vh / VH);
   skySig = '';
   layoutHud();
 }
@@ -1616,7 +1621,25 @@ function render() {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  document.body.style.backgroundColor = rgba(mixC(p.top, p.mid, .3));
+  // present: extend the sky upwards on tall screens, then the street
+  if (OFF > 0) {
+    const BANDS = 10;
+    for (let i = 0; i < BANDS; i++) {
+      screenCtx.fillStyle = rgba(mixC(mulC(p.top, .78), p.top, i / (BANDS - 1)));
+      screenCtx.fillRect(0, Math.floor(i * OFF / BANDS), W, Math.ceil(OFF / BANDS) + 1);
+    }
+    const nC = Math.round(clamp(wx.cloud, 0, 1) * 6);
+    for (let i = 0; i < nC; i++) {
+      const cl = clouds[(i + 7) % clouds.length], span = W + 200, can = cloudCans[(i + 7) % clouds.length];
+      if (can) screenCtx.drawImage(can, Math.round((((cl.x * .7 - cx * .03) % span) + span) % span - 100), Math.round(OFF * (.1 + .75 * ((i * .37) % 1))));
+    }
+    if (starA > 0.02) for (const st of stars) {
+      screenCtx.fillStyle = `rgba(255,250,235,${starA * st.b * (REDUCED ? 1 : .6 + .4 * Math.sin(S.t * 2 + st.tw * 7))})`;
+      screenCtx.fillRect(Math.round(st.x * W), Math.round(st.y / 110 * OFF), 1, 1);
+    }
+  }
+  screenCtx.drawImage(scene, 0, OFF);
+  document.body.style.backgroundColor = rgba(p.top);
 }
 
 /* ===================================================================

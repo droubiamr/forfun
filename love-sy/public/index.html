@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>love.sy</title>
+<meta name="description" content="Pixel-art walks through the cities of Syria, following each city's real time and sky.">
+<meta property="og:title" content="love.sy · مدن سوريا بالبكسل">
+<meta property="og:description" content="Pixel-art walks through the cities of Syria. Homs is open.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: a night-sky page, a pixel heart masthead, then a grid of city "postcards" */
+  :root {
+    color-scheme: dark;
+    --sky: #0e1434;
+    --sky-2: #1b2358;
+    --ink: #f6ecd8;
+    --muted: #b9b4c8;
+    --card: #191a33;
+    --edge: #f6ecd8;
+    --live: #7ee08a;
+    --heart: #e8455a;
+    --gold: #ffcf6a;
+    --pixel: "Pixelify Sans", ui-monospace, monospace;
+    --arabic: "Noto Kufi Arabic", "Geeza Pro", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--sky); }
+  body {
+    margin: 0;
+    min-height: 100%;
+    color: var(--ink);
+    background: var(--sky);
+    font: 500 15px/1.4 var(--pixel);
+    padding: 0 16px 48px;
+    -webkit-font-smoothing: none;
+  }
+  #stars { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; z-index: 0; }
+  main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+  header { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-block: 56px 36px; text-align: center; }
+  #heart { width: 52px; height: 48px; image-rendering: pixelated; }
+  h1 { margin: 6px 0 0; font-size: clamp(40px, 8vw, 64px); font-weight: 700; letter-spacing: 2px; line-height: 1; text-shadow: 4px 4px 0 rgba(0, 0, 0, .35); }
+  h1 .dot { color: var(--heart); }
+  .tag { margin: 0; color: var(--muted); font-size: 16px; text-wrap: balance; }
+  .tag-ar { margin: 0; font: 700 15px/1.6 var(--arabic); color: var(--muted); }
+  #clock { margin-top: 10px; font-size: 13px; color: var(--muted); letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 188px), 1fr)); gap: 18px; list-style: none; margin: 0; padding: 0; }
+  .card {
+    position: relative;
+    display: flex; flex-direction: column;
+    background: var(--card);
+    border: 3px solid var(--edge);
+    box-shadow: 5px 5px 0 rgba(0, 0, 0, .4);
+    color: inherit; text-decoration: none;
+    transition: transform .12s steps(2), box-shadow .12s steps(2);
+    height: 100%;
+  }
+  .card canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; image-rendering: pixelated; border-bottom: 3px solid var(--edge); }
+  .card .names { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 12px 2px; }
+  .card .en { font-size: 19px; font-weight: 700; }
+  .card .ar { font: 700 16px/1.4 var(--arabic); }
+  .card .what { padding: 0 12px 12px; font-size: 12px; color: var(--muted); }
+  .badge { position: absolute; top: 8px; left: 8px; padding: 2px 7px; font-size: 11px; font-weight: 700; letter-spacing: .5px; background: rgba(14, 16, 40, .82); border: 2px solid var(--edge); }
+  .badge.live { color: var(--live); }
+  .badge.live::before { content: "● "; }
+  a.card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 rgba(0, 0, 0, .4); }
+  a.card:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0, 0, 0, .4); }
+  a.card:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .card.soon { opacity: .62; border-style: dashed; }
+  .card.soon canvas { filter: saturate(.55); }
+  footer { margin-top: 44px; text-align: center; color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+  footer .ar { font: 700 13px/1.6 var(--arabic); }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <canvas id="heart" width="13" height="12" aria-hidden="true"></canvas>
+    <h1>love<span class="dot">.</span>sy</h1>
+    <p class="tag">Pixel walks through the cities of Syria</p>
+    <p class="tag-ar" dir="rtl">مشاوير بالبكسل بمدن سوريا</p>
+    <div id="clock" aria-live="off"></div>
+  </header>
+
+  <ul class="grid" id="cities"></ul>
+
+  <footer>
+    <span>Each city follows its own real time, sky and weather.</span>
+    <span class="ar" dir="rtl">كل مدينة بوقتها وسماها وطقسها الحقيقي</span>
+  </footer>
+</main>
+
+<script>
+'use strict';
+(() => {
+  const TZ = 'Asia/Damascus';
+  // Every city gets a card; a city goes live by giving it a path.
+  const CITIES = [
+    { id: 'homs', en: 'Homs', ar: 'حمص', what: 'The New Clock', path: '/homs/' },
+    { id: 'damascus', en: 'Damascus', ar: 'دمشق', what: 'The Umayyad Mosque' },
+    { id: 'aleppo', en: 'Aleppo', ar: 'حلب', what: 'The Citadel' },
+    { id: 'hama', en: 'Hama', ar: 'حماة', what: 'The norias' },
+    { id: 'latakia', en: 'Latakia', ar: 'اللاذقية', what: 'The corniche' },
+    { id: 'tartus', en: 'Tartus', ar: 'طرطوس', what: 'Arwad island' },
+    { id: 'palmyra', en: 'Palmyra', ar: 'تدمر', what: 'The colonnade' },
+    { id: 'bosra', en: 'Bosra', ar: 'بصرى', what: 'The Roman theatre' },
+    { id: 'deir', en: 'Deir ez-Zor', ar: 'دير الزور', what: 'The suspension bridge' },
+    { id: 'raqqa', en: 'Raqqa', ar: 'الرقة', what: 'Bab Baghdad' },
+  ];
+
+  /* ---------- time of day in Syria ---------- */
+  const parts = () => {
+    const o = {};
+    for (const p of new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hourCycle: 'h23', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date())) o[p.type] = p.value;
+    return { h: +o.hour % 24, m: +o.minute };
+  };
+  function timeOfDay(h) {
+    if (h >= 20 || h < 5) return 'night';
+    if (h < 7) return 'dawn';
+    if (h >= 17) return 'dusk';
+    return 'day';
+  }
+  const SKY = {
+    day: { top: '#3e87df', bot: '#cfe5f3', tint: null },
+    dawn: { top: '#3b63b2', bot: '#ffc387', tint: '#f6c9a6' },
+    dusk: { top: '#2c3782', bot: '#f29068', tint: '#d89a8c' },
+    night: { top: '#070b1f', bot: '#2a2f5e', tint: '#4e5290' },
+  };
+
+  /* ---------- tiny pixel helpers ---------- */
+  const W = 96, H = 64, G = 52;
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+  function painter(x) {
+    const R = (a, b, w, h, c) => { x.fillStyle = c; x.fillRect(Math.round(a), Math.round(b), Math.round(w), Math.round(h)); };
+    const disc = (cx, cy, r, c, top = false) => { for (let y = -r; y <= (top ? 0 : r); y++) { const w = Math.round(Math.sqrt(r * r - y * y)); R(cx - w, cy + y, w * 2 + 1, 1, c); } };
+    const arch = (ax, ay, w, h, c) => { const r = w / 2; for (let y = 0; y < h; y++) { const hw = y < r ? Math.sqrt(r * r - (r - y - .5) ** 2) : r; R(ax + r - hw, ay + y, hw * 2, 1, c); } };
+    const palm = (px, base, h) => {
+      for (let y = 0; y < h; y++) R(px + Math.round(Math.sin(y / h * 1.5) * 2), base - y, 2, 1, y % 2 ? '#6e4e30' : '#5a3e24');
+      const cx = px + Math.round(Math.sin(1.5) * 2), cy = base - h;
+      for (const a of [-2.8, -2.2, -1.6, -1, -.4, .2]) for (let t = 0; t < 1; t += .08) R(cx + Math.cos(a) * 9 * t, cy + Math.sin(a) * 9 * t + t * t * 6, 2, 1, t > .6 ? '#3e7a34' : '#2f6a2e');
+    };
+    return { R, disc, arch, palm };
+  }
+
+  /* ---------- the landmarks (96×64, ground at y 52) ---------- */
+  const DRAW = {
+    homs(P, L, now) {
+      const { R, disc, arch, palm } = P;
+      R(0, G, W, 12, '#c9bfae'); R(0, G, W, 1, '#a99f8e');
+      palm(14, G, 30); palm(80, G, 26);
+      R(30, 49, 36, 3, '#d8d2c4'); R(36, 46, 24, 3, '#e4ded0');
+      R(39, 35, 18, 11, '#e8e2d4'); arch(44, 38, 8, 8, '#3c3a3e'); L(46, 41, 4, 5);
+      R(41, 20, 14, 15, '#ece6d8'); R(41, 20, 1, 15, '#3c3a3e'); R(54, 20, 1, 15, '#3c3a3e');
+      R(47, 22, 2, 11, '#3c3a3e'); L(47, 22, 2, 11);
+      R(39, 18, 18, 2, '#e8e2d4');
+      R(40, 6, 16, 12, '#e8e2d4'); arch(41, 6, 14, 12, '#3c3a3e');
+      disc(48, 12, 4, '#f6f2e6');
+      // the hands show the real time in Syria
+      const hand = (ang, len) => { for (let t = 0; t <= len; t += .5) R(48 + Math.round(Math.sin(ang) * t), 12 - Math.round(Math.cos(ang) * t), 1, 1, '#26262a'); };
+      hand(((now.h % 12) + now.m / 60) / 12 * Math.PI * 2, 2); hand(now.m / 60 * Math.PI * 2, 3);
+      R(38, 4, 20, 2, '#ece6d8'); arch(43, 0, 10, 4, '#d8d2c4');
+    },
+    damascus(P, L) {
+      const { R, disc, arch } = P;
+      for (let x = 0; x < W; x++) R(x, 26 + Math.round(6 * Math.sin(x * .05 + 1) + 3 * Math.sin(x * .13)), 1, 30, '#8f8068'); // Qasioun
+      R(0, G, W, 12, '#cbbd9e');
+      R(6, 36, 84, 16, '#d8c8a4'); R(6, 36, 84, 2, '#bfae88');
+      for (let i = 0; i < 10; i++) { arch(9 + i * 8, 41, 5, 9, '#4a3e30'); L(10 + i * 8, 44, 3, 5); }
+      R(36, 26, 22, 10, '#cdbb98'); disc(47, 26, 9, '#8e959e', true); R(46, 15, 1, 3, '#c8a040');
+      R(73, 8, 8, 28, '#e0d0aa'); R(80, 8, 1, 28, '#bfae88'); R(71, 16, 12, 2, '#cdbb98'); R(71, 25, 12, 2, '#cdbb98');
+      R(74, 4, 6, 4, '#e0d0aa'); for (let y = 0; y < 5; y++) R(75 + (y >> 1), y - 1, 4 - (y >> 1) * 2 + 0, 1, '#5d8a5a'); L(75, 10, 4, 4);
+    },
+    aleppo(P, L) {
+      const { R, arch } = P;
+      R(0, G, W, 12, '#b8a074');
+      for (let y = 28; y < G; y++) { const w = 46 + (y - 28) * 1.6; R(48 - w / 2 + 10, y, w, 1, (y % 4) ? '#c8b088' : '#b39a70'); }
+      R(36, 18, 46, 11, '#b49c72'); for (let x = 36; x < 82; x += 4) R(x, 16, 2, 2, '#b49c72');
+      for (let x = 42; x < 80; x += 9) { R(x, 21, 2, 4, '#3e3428'); L(x, 21, 2, 4); }
+      R(14, 22, 14, 22, '#c2aa7e'); for (let x = 14; x < 28; x += 4) R(x, 20, 2, 2, '#c2aa7e'); arch(18, 34, 6, 10, '#3e3428'); L(19, 37, 4, 6);
+      R(0, 36, 16, 3, '#bba27a'); for (let x = 1; x < 16; x += 5) arch(x, 39, 4, 13, '#6a5a44');
+    },
+    hama(P) {
+      const { R } = P;
+      R(0, 46, W, 18, '#3a78ac'); for (let i = 0; i < 14; i++) R((i * 23) % W, 48 + (i * 7) % 14, 6, 1, '#6aa4d4');
+      R(58, 24, 38, 5, '#c8b48a'); for (let x = 60; x < 96; x += 9) { R(x, 29, 3, 17, '#c8b48a'); }
+      const cx = 40, cy = 30, r = 19;
+      for (let a = 0; a < Math.PI * 2; a += .03) { R(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 2, '#5a3e24'); R(cx + Math.cos(a) * (r - 4), cy + Math.sin(a) * (r - 4), 1, 1, '#7a5634'); }
+      for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; for (let t = 0; t < r; t += .7) R(cx + Math.cos(a) * t, cy + Math.sin(a) * t, 1, 1, '#6a4a2c'); R(cx + Math.cos(a) * r - 1, cy + Math.sin(a) * r - 1, 3, 3, '#3a2a1a'); }
+      R(cx - 2, cy - 2, 5, 5, '#3a2a1a'); R(cx - 2, cy, 5, 22, '#4a3a2a');
+      for (let i = 0; i < 6; i++) R(cx - 14 + i * 5, 44 + (i % 2), 2, 2, '#e8f4ff');
+    },
+    latakia(P, L) {
+      const { R, palm } = P;
+      R(0, 38, W, 26, '#2f6fa8'); for (let i = 0; i < 16; i++) R((i * 29) % W, 40 + (i * 5) % 20, 5, 1, '#6aa4d4');
+      R(0, 50, 50, 14, '#d8c8a4'); R(0, 50, 50, 1, '#9a8a70');
+      for (let y = 12; y < 50; y++) { const w = 4 + (y - 12) * .12; R(70 - w / 2, y, w, 1, ((y / 5) | 0) % 2 ? '#c84a3a' : '#f2eee4'); }
+      R(66, 8, 8, 4, '#2a2a30'); R(67, 9, 6, 2, '#ffe08a'); L(67, 9, 6, 2); R(68, 5, 4, 3, '#c84a3a');
+      palm(14, 50, 26); palm(32, 50, 20);
+    },
+    tartus(P, L) {
+      const { R } = P;
+      R(0, 34, W, 30, '#2f6fa8'); for (let i = 0; i < 18; i++) R((i * 31) % W, 36 + (i * 7) % 26, 5, 1, '#6aa4d4');
+      R(30, 30, 40, 6, '#d8c090'); R(36, 22, 26, 8, '#c8b088'); R(36, 22, 26, 1, '#a8905e');
+      for (const x of [34, 48, 62]) { R(x, 18, 6, 12, '#bea47a'); R(x, 16, 2, 2, '#bea47a'); R(x + 4, 16, 2, 2, '#bea47a'); }
+      for (let x = 40; x < 60; x += 6) { R(x, 25, 2, 3, '#3e3428'); L(x, 25, 2, 3); }
+      R(10, 50, 22, 4, '#a8442e'); R(12, 54, 18, 2, '#7a3020'); R(20, 38, 1, 12, '#5a4a3a'); R(21, 40, 8, 8, '#f2eee4');
+    },
+    palmyra(P) {
+      const { R, arch, palm } = P;
+      R(0, 44, W, 20, '#e0c08a'); R(0, 44, W, 1, '#c8a46a');
+      for (let x = 0; x < W; x += 2) R(x, 40 + Math.round(2 * Math.sin(x * .1)), 2, 4, '#d8b67e');
+      R(30, 18, 36, 26, '#e2c896'); arch(40, 26, 16, 18, '#8a6a44'); arch(32, 30, 6, 14, '#9a7a54'); arch(58, 30, 6, 14, '#9a7a54');
+      R(29, 16, 38, 3, '#d4b886');
+      for (const x of [6, 14, 22, 74, 82, 90]) { R(x, 22, 3, 22, '#e6cc9a'); R(x - 1, 20, 5, 2, '#d4b886'); }
+      R(5, 18, 21, 2, '#d4b886'); R(73, 18, 21, 2, '#d4b886');
+      palm(88, 46, 18);
+    },
+    bosra(P) {
+      const { R } = P;
+      R(0, G, W, 12, '#5a5a62');
+      for (let i = 0; i < 10; i++) { const y = 18 + i * 3.4, w = 92 - i * 4; R(48 - w / 2, y, w, 3, i % 2 ? '#55555e' : '#44444c'); R(48 - w / 2, y, w, 1, '#6a6a74'); }
+      R(14, 40, 68, 12, '#3a3a42'); for (let x = 18; x < 80; x += 7) { R(x, 40, 2, 12, '#6a6a74'); }
+      R(10, 38, 76, 2, '#6a6a74');
+    },
+    deir(P) {
+      const { R } = P;
+      R(0, 44, W, 20, '#4a86b0'); for (let i = 0; i < 12; i++) R((i * 27) % W, 47 + (i * 5) % 14, 6, 1, '#7ab0d4');
+      R(0, 40, W, 3, '#8a7a64'); R(0, 43, W, 1, '#5a4a3a');
+      for (const tx of [26, 70]) { R(tx - 3, 12, 2, 32, '#6a5a48'); R(tx + 2, 12, 2, 32, '#6a5a48'); for (let y = 14; y < 40; y += 6) R(tx - 3, y, 7, 1, '#6a5a48'); }
+      const cable = (x0, y0, x1, y1, sag) => { for (let t = 0; t <= 1; t += .01) { const x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t + Math.sin(t * Math.PI) * sag; R(x, y, 1, 1, '#3a3a40'); if (Math.round(x) % 4 === 0) R(x, y, 1, 40 - y, '#5a5a62'); } };
+      cable(26, 13, 70, 13, 20); cable(-8, 34, 26, 13, -2); cable(70, 13, 104, 34, -2);
+    },
+    raqqa(P, L) {
+      const { R, arch } = P;
+      R(0, G, W, 12, '#c8a87a');
+      R(18, 18, 60, 34, '#b26e48');
+      for (let y = 18; y < G; y += 3) { R(18, y, 60, 1, '#9a5a3a'); for (let x = 18 + (y % 6 ? 0 : 3); x < 78; x += 6) R(x, y, 1, 3, '#9a5a3a'); }
+      arch(38, 30, 20, 22, '#5a3424'); arch(40, 32, 16, 20, '#2e1e16'); R(47, 33, 1, 4, '#2a2a2a'); R(46, 37, 3, 3, '#3a2a1a'); L(47, 38, 1, 1);
+      for (let x = 22; x < 76; x += 9) if (x < 34 || x > 58) arch(x, 22, 5, 9, '#8a4a30');
+      R(16, 16, 64, 2, '#c2805a');
+    },
+  };
+
+  function drawCity(cv, id, tod, now) {
+    const x = cv.getContext('2d'), sky = SKY[tod];
+    x.imageSmoothingEnabled = false;
+    // dithered sky bands
+    for (let y = 0; y < H; y++) for (let i = 0; i < W; i += 1) {
+      const t = Math.min(1, y / 50) + (((i + y) % 2) ? .02 : -.02);
+      x.fillStyle = mix(sky.top, sky.bot, Math.round(t * 8) / 8); x.fillRect(i, y, 1, 1);
+    }
+    if (tod === 'night') { for (let i = 0; i < 18; i++) { x.fillStyle = 'rgba(255,250,235,.8)'; x.fillRect((i * 37 + id.length * 11) % W, (i * 13) % 30, 1, 1); } }
+    else if (tod === 'day') { x.fillStyle = '#fff6d8'; x.fillRect(84, 6, 6, 6); x.fillRect(83, 7, 8, 4); }
+    // the landmark, then tinted for the time of day, then lit windows on top
+    const [c2, x2] = (() => { const c = document.createElement('canvas'); c.width = W; c.height = H; return [c, c.getContext('2d')]; })();
+    const lights = [];
+    DRAW[id](painter(x2), (a, b, w, h) => lights.push([a, b, w, h]), now);
+    if (sky.tint) {
+      const m = document.createElement('canvas'); m.width = W; m.height = H; m.getContext('2d').drawImage(c2, 0, 0);
+      x2.globalCompositeOperation = 'multiply'; x2.fillStyle = sky.tint; x2.fillRect(0, 0, W, H);
+      x2.globalCompositeOperation = 'destination-in'; x2.drawImage(m, 0, 0);
+      x2.globalCompositeOperation = 'source-over';
+    }
+    x.drawImage(c2, 0, 0);
+    if (tod === 'night' || tod === 'dusk') { x.fillStyle = tod === 'night' ? '#ffd890' : 'rgba(255,216,144,.6)'; for (const [a, b, w, h] of lights) x.fillRect(a, b, w, h); }
+  }
+
+  /* ---------- page ---------- */
+  const list = document.getElementById('cities');
+  for (const c of CITIES) {
+    const li = document.createElement('li');
+    const card = document.createElement(c.path ? 'a' : 'div');
+    card.className = 'card ' + (c.path ? 'live' : 'soon');
+    if (c.path) card.href = c.path; else card.setAttribute('aria-disabled', 'true');
+    card.innerHTML = `<canvas width="${W}" height="${H}" role="img" aria-label="Pixel drawing of ${c.what}, ${c.en}"></canvas>
+      <span class="badge ${c.path ? 'live' : ''}">${c.path ? 'Walk now' : 'Soon · قريباً'}</span>
+      <span class="names"><span class="en">${c.en}</span><span class="ar" dir="rtl">${c.ar}</span></span>
+      <span class="what">${c.what}</span>`;
+    li.append(card); list.append(li);
+    c.canvas = card.querySelector('canvas');
+  }
+  const FORCED_TOD = SKY[new URLSearchParams(location.search).get('tod')] ? new URLSearchParams(location.search).get('tod') : null; // ?tod=night to preview
+  let lastKey = '';
+  function refresh() {
+    const now = parts(), tod = FORCED_TOD || timeOfDay(now.h), key = tod + now.h + ':' + now.m;
+    document.getElementById('clock').textContent = `Syria now · ${String(now.h).padStart(2, '0')}:${String(now.m).padStart(2, '0')}`;
+    if (key === lastKey) return;
+    lastKey = key;
+    for (const c of CITIES) drawCity(c.canvas, c.id, tod, now);
+  }
+  refresh();
+  setInterval(refresh, 20000);
+
+  // the heart, and a sprinkle of stars behind everything
+  const hx = document.getElementById('heart').getContext('2d');
+  ['..XX...XX....', '.XXXX.XXXX...', 'XXWXXXXXXXX..', 'XWXXXXXXXXX..', 'XXXXXXXXXXX..', '.XXXXXXXXX...', '..XXXXXXX....', '...XXXXX.....', '....XXX......', '.....X.......']
+    .forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') { hx.fillStyle = ch === 'W' ? '#ffd0d6' : '#e8455a'; hx.fillRect(x + 1, y + 1, 1, 1); } }));
+  const st = document.getElementById('stars'), sx = st.getContext('2d');
+  const drawStars = () => {
+    st.width = Math.ceil(innerWidth / 3); st.height = Math.ceil(innerHeight / 3);
+    // a banded, dithered pixel sky across the whole screen
+    const stops = ['#0b1030', '#141c4a', '#1f2860', '#2c2f6e', '#3a3170'], n = stops.length - 1;
+    for (let y = 0; y < st.height; y++) {
+      const t = y / st.height * n, i = Math.min(n - 1, Math.floor(t)), f = t - i;
+      for (let x = 0; x < st.width; x += 1) {
+        const pick = f > [.2, .6, .8, .4][(x & 1) + ((y & 1) << 1)] ? i + 1 : i;
+        sx.fillStyle = stops[pick]; sx.fillRect(x, y, 1, 1);
+      }
+    }
+    let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < st.width * st.height / 220; i++) { sx.fillStyle = `rgba(255,250,235,${.25 + r() * .6})`; sx.fillRect(r() * st.width | 0, r() * st.height | 0, 1, 1); }
+  };
+  drawStars(); addEventListener('resize', drawStars);
+})();
+</script>
+</body>
+</html>
