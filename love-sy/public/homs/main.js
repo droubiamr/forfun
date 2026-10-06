@@ -1204,7 +1204,7 @@ function update(dt) {
   // camera follows; the street is a loop, so everything shifts by one lap when the camera wraps
   const look = pl.dir * 28;
   const tx = pl.x - W / 2 + look;
-  cam.x = REDUCED ? tx : lerp(cam.x, tx, clamp(dt * 3, 0, 1));
+  cam.x = REDUCED ? tx : lerp(cam.x, tx, clamp(dt * 8, 0, 1));
   if (cam.x >= WORLD_W || cam.x < 0) {
     const k = cam.x >= WORLD_W ? -WORLD_W : WORLD_W;
     cam.x += k; pl.x += k;
@@ -2077,7 +2077,6 @@ const sound = (() => {
       master.gain.setTargetAtTime(0, ac.currentTime, .15);
       clearInterval(timer); timer = null;
     },
-    toggle() { this.on = !this.on; this.on ? this.start() : this.stop(); },
     shutter() {
       if (!this.on || !sfxReady()) return;
       const t = ac.currentTime;
@@ -2095,14 +2094,17 @@ const sound = (() => {
 })();
 // Browsers only allow sound after the visitor interacts, so the music starts on the very first touch, click or key.
 function autoStartSound() {
+  // play even when an iPhone is on silent, like a video would
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older browsers */ }
   if (!sound.on) return;
   try { sound.start(); } catch { /* no audio */ }
   const hint = $('#soundHint');
   const check = () => { hint.hidden = sound.running || !sound.on; };
   setTimeout(check, 400);
   setTimeout(() => { hint.hidden = true; }, 7000);
-  const go = () => { if (sound.on) sound.start(); setTimeout(check, 200); };
-  for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, go, { once: true, capture: true });
+  const go = () => { if (sound.on && pl.auto) sound.start(); setTimeout(check, 200); };
+  // iPhones only unlock audio on a finished tap (touchend/click), so listen for those too
+  for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(ev, go, { once: true, capture: true });
 }
 function syncSound() { const b = $('#btnSound'); b.textContent = sound.on ? '♪ On' : '♪ Off'; b.setAttribute('aria-pressed', String(sound.on)); }
 
@@ -2151,8 +2153,12 @@ $('#btnInfo').onclick = e => {
   if (hud.hidden) { preview.hidden = true; $('#btnPreview').setAttribute('aria-pressed', 'false'); }
   hudDirty = true; layoutHud();
 };
-$('#btnStroll').onclick = () => { pl.auto = !pl.auto; pl.manualT = 0; syncStroll(); };
-$('#btnSound').onclick = () => { sound.toggle(); syncSound(); $('#soundHint').hidden = true; };
+$('#btnStroll').onclick = () => {
+  pl.auto = !pl.auto; pl.manualT = 0; syncStroll();
+  // pause means pause everything, music included
+  if (sound.on) pl.auto ? sound.start() : sound.stop();
+};
+$('#btnSound').onclick = () => { sound.on = !sound.on; sound.on && pl.auto ? sound.start() : sound.stop(); syncSound(); $('#soundHint').hidden = true; };
 $('#btnHelp').onclick = () => { $('#help').hidden = !$('#help').hidden; };
 $('#btnHelpClose').onclick = () => { $('#help').hidden = true; };
 $('#btnCopyPrompt').onclick = async e => {
