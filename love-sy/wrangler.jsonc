@@ -1,7 +1,0 @@
-// love.sy: Cloudflare serves the files in ./public as they are (no server code)
-{
-  "name": "love-sy",
-  "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public", "not_found_handling": "404-page" },
-  "routes": [{ "pattern": "love.sy", "custom_domain": true }]
-}
