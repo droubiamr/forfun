@@ -3,5 +3,8 @@
   "name": "forfun",
   "compatibility_date": "2026-10-01",
   "assets": { "directory": "./love-sy/public", "not_found_handling": "404-page" },
-  "routes": [{ "pattern": "love.sy", "custom_domain": true }]
+  "routes": [
+    { "pattern": "love.sy", "custom_domain": true },
+    { "pattern": "www.love.sy", "custom_domain": true }
+  ]
 }
