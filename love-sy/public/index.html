@@ -63,17 +63,13 @@
   .card .en { font-size: 19px; font-weight: 700; }
   .card .ar { font: 700 16px/1.4 var(--arabic); }
   .card .what { padding: 0 12px 12px; font-size: 12px; color: var(--muted); }
-  .badge { position: absolute; top: 8px; left: 8px; padding: 2px 7px; font-size: 11px; font-weight: 700; letter-spacing: .5px; background: rgba(14, 16, 40, .82); border: 2px solid var(--edge); }
+  .badge { position: absolute; top: 8px; left: 8px; padding: 2px 7px; font-size: 11px; font-weight: 700; letter-spacing: .5px; background: var(--card); border: 2px solid var(--edge); }
   .badge.live { color: var(--live); }
   .badge.live::before { content: "● "; }
   a.card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 rgba(0, 0, 0, .4); }
   a.card:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0, 0, 0, .4); }
   a.card:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
-  .card.soon { opacity: .62; border-style: dashed; }
-  .card.soon canvas { filter: saturate(.55); }
   footer { margin-top: 44px; text-align: center; color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
-  footer a { color: var(--gold); }
-  footer .ar { font: 700 13px/1.6 var(--arabic); }
   @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 </style>
 </head>
@@ -91,9 +87,7 @@
   <ul class="grid" id="cities"></ul>
 
   <footer>
-    <span>Each city follows its own real time, sky and weather.</span>
-    <span class="ar" dir="rtl">كل مدينة بوقتها وسماها وطقسها الحقيقي</span>
-    <span>Open source · <a href="/PROMPT.md">the prompt</a> · <a href="https://github.com/droubiamr/forfun">the code</a></span>
+    <span>Made for fun with the help of Claude.</span>
   </footer>
 </main>
 
